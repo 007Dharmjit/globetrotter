@@ -123,3 +123,29 @@ class TripOut(BaseModel):
 class TripSummary(TripOut):
     stop_count: int = 0
     estimated_cost: Decimal = Decimal("0")
+
+
+class CityOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    country: str
+    region: str
+    cost_index: int
+    popularity: int
+    avg_stay_cost_per_day: Decimal
+    avg_meal_cost_per_day: Decimal
+    image_url: str | None
+
+
+class ActivityOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    city_id: int
+    name: str
+    category: str
+    cost: Decimal
+    duration_hours: Decimal
+    description: str | None
