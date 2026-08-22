@@ -115,7 +115,7 @@ class Stop(Base):
         "StopActivity",
         back_populates="stop",
         cascade="all, delete-orphan",
-        order_by="StopActivity.order_index",
+        order_by="StopActivity.order_index, StopActivity.id",
     )
 
 

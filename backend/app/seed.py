@@ -488,12 +488,13 @@ def seed_sample_trip(db, user):
         db.add(stop)
         db.flush()
 
-        for activity_name, day_offset, start_time in planned:
+        for position, (activity_name, day_offset, start_time) in enumerate(planned):
             activity = db.query(Activity).filter(Activity.city_id == city.id, Activity.name == activity_name).one()
             db.add(
                 StopActivity(
                     stop_id=stop.id,
                     activity_id=activity.id,
+                    order_index=position,
                     scheduled_date=arrival + timedelta(days=day_offset),
                     start_time=start_time,
                 )
