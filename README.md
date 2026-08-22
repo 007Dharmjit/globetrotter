@@ -2,6 +2,12 @@
 
 Plan a multi-city trip end to end: pick the cities, set the dates, fill the days with activities, and watch the budget update as you go.
 
+![Dashboard](docs/dashboard.png)
+
+![Itinerary builder](docs/builder.png)
+
+![Budget breakdown](docs/budget.png)
+
 ## The problem
 
 Planning a trip across several cities ends up split between a notes app and a spreadsheet — the plan in one place, the cost in another. Neither knows about the other, so the moment you add a night in Udaipur or swap a museum for a rafting trip, the budget is out of date.
