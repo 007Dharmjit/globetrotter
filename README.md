@@ -28,6 +28,8 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates, eac
 
 **Explore activities** — pick a city and narrow its activities by category, maximum cost and maximum hours.
 
+**Saved destinations** — heart a city while exploring and it waits on your profile, ready to drop into a trip or remove.
+
 **Itinerary builder** — add city stops with arrival and departure dates and what it cost to get there, reorder them, and hang activities off each stop with a day and a start time. A stop must sit inside the trip and cannot overlap another; an activity can only go on a day you are in that city.
 
 **Itinerary view** — the trip read back day by day, grouped into city sections, each activity with its time, category, length and cost, and free days called out. A calendar toggle lays the same trip over a month grid where picking a day expands it.
@@ -36,7 +38,11 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates, eac
 
 **Share** — turn a trip into a link anyone can open without an account. They see the plan only, on a page with no way into the app, and sharing can be switched off again.
 
+**Send it on** — WhatsApp, X and email buttons sit beside the link, on the share panel and on the shared page itself, each carrying the trip name.
+
 **Profile** — change your name and interface language, or delete your account and everything in it.
+
+**Analytics** — administrators get a read-only dashboard: totals, trips created over the last fortnight, the most visited cities, the most planned activities and the newest travellers.
 
 ## Quick start
 
