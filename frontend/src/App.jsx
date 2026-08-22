@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import PublicLayout from './components/PublicLayout'
 import { ToastProvider } from './components/Toast'
 import { AuthProvider } from './context/AuthContext'
 import ActivitySearch from './pages/ActivitySearch'
@@ -25,8 +26,10 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route element={<Layout />}>
+            <Route element={<PublicLayout />}>
               <Route path="/share/:token" element={<SharedTrip />} />
+            </Route>
+            <Route element={<Layout />}>
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/trips" element={<MyTrips />} />

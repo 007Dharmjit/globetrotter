@@ -72,7 +72,7 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
           <div className="flex flex-col gap-1">
-            {[...links, { to: '/profile', label: 'Profile', icon: User }].map(({ to, label, icon: Icon, end }) => (
+            {[...links, { to: '/profile', label: user ? user.name.split(' ')[0] : 'Profile', icon: User }].map(({ to, label, icon: Icon, end }) => (
               <NavLink key={to} to={to} end={end} className={linkClass} onClick={() => setOpen(false)}>
                 <Icon size={18} />
                 {label}
