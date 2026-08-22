@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Activity, City, Stop, StopActivity, Trip, User
-from ..schemas import AdminStats
+from ..schemas import AdminStats, AdminUserRow, AdminUserUpdate
+from ..uploads import remove_image
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -71,6 +72,8 @@ def stats(db: Session = Depends(get_db), _: User = Depends(require_admin)):
             "email": user.email,
             "joined": user.created_at.date(),
             "trips": trip_counts.get(user.id, 0),
+            "is_active": user.is_active,
+            "is_admin": user.is_admin,
         }
         for user in db.query(User).order_by(User.created_at.desc(), User.id.desc()).limit(10).all()
     ]
@@ -82,3 +85,46 @@ def stats(db: Session = Depends(get_db), _: User = Depends(require_admin)):
         "top_activities": top_activities,
         "recent_users": recent_users,
     }
+
+
+def other_user(user_id: int, db: Session, admin: User) -> User:
+    if user_id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot do that to your own account.")
+    target = db.get(User, user_id)
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "That traveller no longer exists.")
+    return target
+
+
+@router.patch("/users/{user_id}", response_model=AdminUserRow)
+def set_user_active(
+    user_id: int,
+    payload: AdminUserUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    target = other_user(user_id, db, admin)
+    target.is_active = payload.is_active
+    db.commit()
+    db.refresh(target)
+
+    return AdminUserRow(
+        id=target.id,
+        name=target.name,
+        email=target.email,
+        joined=target.created_at.date(),
+        trips=len(target.trips),
+        is_active=target.is_active,
+        is_admin=target.is_admin,
+    )
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    target = other_user(user_id, db, admin)
+    # The rows cascade, but the pictures on disk have to be cleared by hand.
+    for trip in target.trips:
+        remove_image(trip.cover_image)
+    remove_image(target.avatar)
+    db.delete(target)
+    db.commit()

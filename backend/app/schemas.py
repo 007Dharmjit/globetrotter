@@ -60,6 +60,7 @@ class UserOut(BaseModel):
     language: str
     avatar: str | None
     is_admin: bool
+    is_active: bool
     created_at: datetime
 
 
@@ -371,6 +372,12 @@ class AdminUserRow(BaseModel):
     email: EmailStr
     joined: date
     trips: int
+    is_active: bool
+    is_admin: bool
+
+
+class AdminUserUpdate(BaseModel):
+    is_active: bool
 
 
 class AdminStats(BaseModel):

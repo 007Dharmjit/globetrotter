@@ -18,6 +18,7 @@ RESET_MINUTES = 15
 # Said whether or not the email is registered, so the form cannot be used to find accounts.
 RESET_SENT = "If that email has an account, a reset link has been created for it."
 RESET_DEAD = "This reset link has expired or has already been used. Ask for a new one."
+DEACTIVATED = "This account is deactivated. Contact an administrator to get it back."
 
 
 def reset_url(token: str) -> str:
@@ -43,6 +44,8 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
     # Same message either way so the form cannot be used to discover registered emails.
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email or password is incorrect.")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, DEACTIVATED)
 
     return TokenOut(access_token=create_access_token(user.id), user=user)
 
