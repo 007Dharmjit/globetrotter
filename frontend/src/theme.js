@@ -14,14 +14,3 @@ export const colors = {
 
 // Order matters: budget categories are always drawn in this sequence.
 export const chartColors = [colors.primary, colors.primaryLight, colors.accent, '#8B5CF6', '#0EA5E9']
-
-export const currency = 'INR'
-
-export function formatMoney(value) {
-  const amount = Number(value || 0)
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
