@@ -20,6 +20,9 @@ export default function ActivitySearch() {
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState('')
 
+  const costProblem = maxCost !== '' && Number(maxCost) < 0 ? 'Cost cannot be negative.' : ''
+  const durationProblem = maxDuration !== '' && Number(maxDuration) <= 0 ? 'Hours must be more than zero.' : ''
+
   useEffect(() => {
     client.get('/cities?sort=name&limit=100').then(({ data }) => setCities(data)).catch(() => setCities([]))
     client.get('/activities/categories').then(({ data }) => setCategories(data)).catch(() => setCategories([]))
@@ -30,6 +33,8 @@ export default function ActivitySearch() {
       setActivities([])
       return undefined
     }
+    // Nonsense numbers are caught here rather than bounced back by the server.
+    if (costProblem || durationProblem) return undefined
     setLoading(true)
     const search = new URLSearchParams({ city_id: cityId })
     if (category) search.set('category', category)
@@ -47,7 +52,7 @@ export default function ActivitySearch() {
         .finally(() => setLoading(false))
     }, 200)
     return () => clearTimeout(timer)
-  }, [cityId, category, maxCost, maxDuration])
+  }, [cityId, category, maxCost, maxDuration, costProblem, durationProblem])
 
   function pickCity(value) {
     const next = new URLSearchParams(params)
@@ -101,11 +106,13 @@ export default function ActivitySearch() {
             type="number"
             min="0"
             step="500"
-            className="input"
+            className={`input ${costProblem ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
             placeholder="Any"
+            aria-invalid={costProblem ? 'true' : undefined}
             value={maxCost}
             onChange={(e) => setMaxCost(e.target.value)}
           />
+          {costProblem && <p className="mt-1 text-xs text-red-600">{costProblem}</p>}
         </div>
 
         <div>
@@ -117,11 +124,13 @@ export default function ActivitySearch() {
             type="number"
             min="1"
             step="1"
-            className="input"
+            className={`input ${durationProblem ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
             placeholder="Any"
+            aria-invalid={durationProblem ? 'true' : undefined}
             value={maxDuration}
             onChange={(e) => setMaxDuration(e.target.value)}
           />
+          {durationProblem && <p className="mt-1 text-xs text-red-600">{durationProblem}</p>}
         </div>
       </div>
 

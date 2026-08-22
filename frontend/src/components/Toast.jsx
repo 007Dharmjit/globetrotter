@@ -23,7 +23,7 @@ export function ToastProvider({ children }) {
           <div
             key={id}
             role="status"
-            className={`animate-[fadeIn_.18s_ease-out] flex items-start gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm ${
+            className={`fade-in flex items-start gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm ${
               tone === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-slate-200 bg-white text-slate-800'
             }`}
           >

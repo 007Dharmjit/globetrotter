@@ -57,6 +57,19 @@ def read_budget(trip_id: int, db: Session = Depends(get_db), user: User = Depend
 @router.put("/{trip_id}", response_model=TripOut)
 def update_trip(trip_id: int, payload: TripIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     trip = owned_trip(trip_id, db, user)
+
+    stranded = [
+        stop
+        for stop in trip.stops
+        if stop.arrival_date < payload.start_date or stop.departure_date > payload.end_date
+    ]
+    if stranded:
+        cities = ", ".join(sorted({stop.city.name for stop in stranded}))
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"These new dates leave your stop in {cities} outside the trip. Move that stop first.",
+        )
+
     for field, value in payload.model_dump().items():
         setattr(trip, field, value)
     db.commit()

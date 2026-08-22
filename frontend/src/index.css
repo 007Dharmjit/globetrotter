@@ -41,7 +41,11 @@
 
   .input {
     @apply h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900
-           placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
+           placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.18s ease-out;
   }
 
   .chip {
@@ -56,6 +60,22 @@
   }
   to {
     opacity: 1;
+    transform: none;
+  }
+}
+
+/* Respect a request for less motion: colours still change, nothing slides or scales. */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+  }
+
+  .btn,
+  .card {
+    transition: none;
+  }
+
+  .btn:active {
     transform: none;
   }
 }
