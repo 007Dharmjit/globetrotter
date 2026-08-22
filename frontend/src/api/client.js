@@ -34,7 +34,10 @@ client.interceptors.response.use(
 export function readError(error, fallback = 'Something went wrong. Please try again.') {
   const detail = error?.response?.data?.detail
   if (typeof detail === 'string') return detail
-  if (Array.isArray(detail) && detail.length) return detail[0].msg || fallback
+  if (Array.isArray(detail) && detail.length) {
+    // FastAPI prefixes messages raised by a validator with "Value error, ".
+    return (detail[0].msg || fallback).replace(/^Value error, /, '')
+  }
   if (!error?.response) return 'Cannot reach the server. Make sure the API is running on port 8000.'
   return fallback
 }

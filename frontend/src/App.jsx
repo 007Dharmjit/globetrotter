@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
+import { AuthProvider } from './context/AuthContext'
 import ActivitySearch from './pages/ActivitySearch'
 import Budget from './pages/Budget'
 import CitySearch from './pages/CitySearch'
@@ -16,24 +18,28 @@ import Signup from './pages/Signup'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/trips" element={<MyTrips />} />
-          <Route path="/trips/new" element={<CreateTrip />} />
-          <Route path="/trips/:id" element={<ItineraryView />} />
-          <Route path="/trips/:id/build" element={<ItineraryBuilder />} />
-          <Route path="/trips/:id/budget" element={<Budget />} />
-          <Route path="/explore/cities" element={<CitySearch />} />
-          <Route path="/explore/activities" element={<ActivitySearch />} />
-          <Route path="/share/:token" element={<SharedTrip />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route element={<Layout />}>
+            <Route path="/share/:token" element={<SharedTrip />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/trips" element={<MyTrips />} />
+              <Route path="/trips/new" element={<CreateTrip />} />
+              <Route path="/trips/:id" element={<ItineraryView />} />
+              <Route path="/trips/:id/build" element={<ItineraryBuilder />} />
+              <Route path="/trips/:id/budget" element={<Budget />} />
+              <Route path="/explore/cities" element={<CitySearch />} />
+              <Route path="/explore/activities" element={<ActivitySearch />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
