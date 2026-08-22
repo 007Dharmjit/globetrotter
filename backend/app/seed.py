@@ -1,7 +1,11 @@
 """Fills the reference tables. Safe to run again: rows are matched and updated, never duplicated."""
 
+from .auth import hash_password
 from .database import Base, SessionLocal, engine
-from .models import Activity, City
+from .models import Activity, City, User
+
+DEMO_EMAIL = "demo@globetrotter.app"
+DEMO_PASSWORD = "Demo@1234"
 
 # name, country, region, cost_index, popularity, stay per day, meals per day (INR)
 CITIES = [
@@ -428,15 +432,29 @@ def seed_activities(db):
     return added
 
 
+def seed_demo_user(db):
+    """The account the app is demonstrated with. Its password is reset on every run so the login always works."""
+    user = db.query(User).filter(User.email == DEMO_EMAIL).first()
+    created = user is None
+    if created:
+        user = User(name="Demo Traveller", email=DEMO_EMAIL)
+        db.add(user)
+    user.password_hash = hash_password(DEMO_PASSWORD)
+    db.flush()
+    return user, created
+
+
 def main():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         new_cities = seed_cities(db)
         new_activities = seed_activities(db)
+        _, demo_created = seed_demo_user(db)
         db.commit()
         print(f"Cities: {db.query(City).count()} total, {new_cities} added")
         print(f"Activities: {db.query(Activity).count()} total, {new_activities} added")
+        print(f"Demo user: {DEMO_EMAIL} {'created' if demo_created else 'already present'}")
     finally:
         db.close()
 

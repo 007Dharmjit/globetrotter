@@ -1,6 +1,7 @@
 from sqlalchemy import (
     CheckConstraint,
     Column,
+    DateTime,
     Enum,
     ForeignKey,
     Integer,
@@ -8,12 +9,24 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import relationship
 
 from .database import Base
 
 ACTIVITY_CATEGORIES = ("sightseeing", "food", "adventure", "culture", "nightlife", "shopping")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False)
+    email = Column(String(120), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    language = Column(String(10), nullable=False, default="en")
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
 class City(Base):
