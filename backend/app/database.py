@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
@@ -21,3 +21,13 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_columns():
+    """Add columns introduced after a database was first created, without touching existing rows."""
+    statements = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false",
+    ]
+    with engine.begin() as conn:
+        for statement in statements:
+            conn.execute(text(statement))

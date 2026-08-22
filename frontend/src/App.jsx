@@ -1,10 +1,12 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import AdminRoute from './components/AdminRoute'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import PublicLayout from './components/PublicLayout'
 import { ToastProvider } from './components/Toast'
 import { AuthProvider } from './context/AuthContext'
 import ActivitySearch from './pages/ActivitySearch'
+import Admin from './pages/Admin'
 import Budget from './pages/Budget'
 import CitySearch from './pages/CitySearch'
 import CreateTrip from './pages/CreateTrip'
@@ -41,6 +43,9 @@ export default function App() {
                 <Route path="/explore/cities" element={<CitySearch />} />
                 <Route path="/explore/activities" element={<ActivitySearch />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin" element={<Admin />} />
+                </Route>
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>

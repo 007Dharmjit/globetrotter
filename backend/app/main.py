@@ -4,13 +4,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .database import Base, engine
-from .routers import activities, auth, cities, share, stops, trips, users
+from .database import Base, engine, ensure_columns
+from .routers import activities, admin, auth, cities, share, stops, trips, users
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_columns()
     yield
 
 
@@ -25,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(activities.router)
+app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(cities.router)
 app.include_router(share.router)

@@ -53,6 +53,7 @@ class UserOut(BaseModel):
     name: str
     email: EmailStr
     language: str
+    is_admin: bool
     created_at: datetime
 
 
@@ -293,3 +294,43 @@ class UserUpdate(BaseModel):
         if value not in LANGUAGES:
             raise ValueError("Choose one of the languages we support.")
         return value
+
+
+class AdminTotals(BaseModel):
+    users: int
+    trips: int
+    stops: int
+    planned_activities: int
+
+
+class AdminDayCount(BaseModel):
+    date: date
+    trips: int
+
+
+class AdminCityCount(BaseModel):
+    city: str
+    country: str
+    stops: int
+
+
+class AdminActivityCount(BaseModel):
+    activity: str
+    city: str
+    times_planned: int
+
+
+class AdminUserRow(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    joined: date
+    trips: int
+
+
+class AdminStats(BaseModel):
+    totals: AdminTotals
+    trips_per_day: list[AdminDayCount]
+    top_cities: list[AdminCityCount]
+    top_activities: list[AdminActivityCount]
+    recent_users: list[AdminUserRow]

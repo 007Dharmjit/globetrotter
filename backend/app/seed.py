@@ -3,7 +3,7 @@
 from datetime import date, timedelta
 
 from .auth import hash_password
-from .database import Base, SessionLocal, engine
+from .database import Base, SessionLocal, engine, ensure_columns
 from .models import Activity, City, Stop, StopActivity, Trip, User
 
 DEMO_EMAIL = "demo@globetrotter.app"
@@ -451,6 +451,7 @@ def seed_demo_user(db):
         user = User(name="Demo Traveller", email=DEMO_EMAIL)
         db.add(user)
     user.password_hash = hash_password(DEMO_PASSWORD)
+    user.is_admin = True
     db.flush()
     return user, created
 
@@ -505,6 +506,7 @@ def seed_sample_trip(db, user):
 
 def main():
     Base.metadata.create_all(bind=engine)
+    ensure_columns()
     db = SessionLocal()
     try:
         new_cities = seed_cities(db)

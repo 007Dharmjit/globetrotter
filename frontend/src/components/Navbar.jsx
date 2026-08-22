@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Compass, Globe2, LayoutDashboard, LogOut, Map, Menu, User, X } from 'lucide-react'
+import { BarChart3, Compass, Globe2, LayoutDashboard, LogOut, Map, Menu, User, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const links = [
@@ -16,10 +16,13 @@ function linkClass({ isActive }) {
   ].join(' ')
 }
 
+const adminLink = { to: '/admin', label: 'Analytics', icon: BarChart3 }
+
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const mainLinks = user?.is_admin ? [...links, adminLink] : links
 
   function signOut() {
     setOpen(false)
@@ -36,7 +39,7 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
-          {links.map(({ to, label, icon: Icon, end }) => (
+          {mainLinks.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={linkClass}>
               <Icon size={18} />
               {label}
@@ -72,7 +75,7 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
           <div className="flex flex-col gap-1">
-            {[...links, { to: '/profile', label: user ? user.name.split(' ')[0] : 'Profile', icon: User }].map(({ to, label, icon: Icon, end }) => (
+            {[...mainLinks, { to: '/profile', label: user ? user.name.split(' ')[0] : 'Profile', icon: User }].map(({ to, label, icon: Icon, end }) => (
               <NavLink key={to} to={to} end={end} className={linkClass} onClick={() => setOpen(false)}>
                 <Icon size={18} />
                 {label}
