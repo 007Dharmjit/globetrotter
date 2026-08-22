@@ -34,7 +34,7 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates, eac
 
 ## Quick start
 
-You need Python 3.11+, Node 18+ and PostgreSQL 14+ running locally.
+You need **Python 3.11+**, **Node 20.19+ or 22.12+** and **PostgreSQL 14+** running locally. Node 18 is not enough — the Vite 8 build refuses to start on it. On Debian and Ubuntu, `python3 -m venv` also needs the `python3-venv` package.
 
 **1. Database**
 
@@ -42,21 +42,61 @@ You need Python 3.11+, Node 18+ and PostgreSQL 14+ running locally.
 createdb globetrotter
 ```
 
+If that answers `role "<your username>" does not exist`, give your account a PostgreSQL role first and try again:
+
+```bash
+sudo -u postgres createuser --createdb "$USER"
+```
+
 **2. Backend**
+
+From the repository root:
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env          # then set DATABASE_URL and SECRET_KEY
+cp .env.example .env
+```
+
+Now open `backend/.env` and set `DATABASE_URL` and `SECRET_KEY`.
+
+`DATABASE_URL` must end in the database name you created above. Which form connects depends on how your PostgreSQL is set up — use the first one that works:
+
+```bash
+# Linux: PostgreSQL trusts your own account over the local socket
+DATABASE_URL=postgresql://YOUR_USERNAME@/globetrotter?host=/var/run/postgresql
+
+# macOS (Homebrew): the same trust, over TCP
+DATABASE_URL=postgresql://YOUR_USERNAME@localhost:5432/globetrotter
+
+# Anywhere, with a role that has a password
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/globetrotter
+```
+
+Two errors mean you picked the wrong one. `password authentication failed for user "postgres"` is the shipped placeholder still being used — a stock install gives that account no password. `fe_sendauth: no password supplied` is the TCP form on Linux, where the socket form above is the one that works.
+
+`SECRET_KEY` is any long random string. Generate one with:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+The other two keys already have working defaults: `ACCESS_TOKEN_EXPIRE_MINUTES` (how many minutes a login lasts) and `FRONTEND_ORIGIN` (where the UI runs — leave it unless you change the frontend port).
+
+Then seed the catalogue and start the API:
+
+```bash
 python -m app.seed            # cities, activities and the demo account
 uvicorn app.main:app --reload --port 8000
 ```
 
-`GET http://localhost:8000/api/health` should answer `{"status":"ok"}`.
+`GET http://localhost:8000/api/health` should answer `{"status":"ok"}`. Leave this terminal running.
 
 **3. Frontend**
+
+In a second terminal, again from the repository root:
 
 ```bash
 cd frontend
@@ -71,6 +111,19 @@ demo@globetrotter.app
 Demo@1234
 ```
 
+**Running on different ports**
+
+The API defaults to 8000 and the UI to 5173. If either port is taken, four settings have to agree — change all of them and restart both servers:
+
+| To change | Do this |
+|---|---|
+| API port | `uvicorn app.main:app --reload --port 8001` |
+| UI port | `npm run dev -- --port 5174` |
+| Tell the UI where the API is | put `VITE_API_URL=http://localhost:8001/api` in `frontend/.env.local` |
+| Let the API accept the UI | set `FRONTEND_ORIGIN=http://localhost:5174` in `backend/.env` |
+
+`FRONTEND_ORIGIN` is also the address baked into generated share links, so it has to match the UI you actually open in the browser.
+
 It comes with a finished sample trip, so nothing starts from an empty screen. Running the seed again is safe — it updates the catalogue rather than duplicating it, and leaves your own trips alone.
 
 ## How to use (3 minutes)
@@ -81,8 +134,8 @@ It comes with a finished sample trip, so nothing starts from an empty screen. Ru
 4. **Add activities** — press *Add activity* on a stop, pick something from that city and give it a day and a time. Picking a day you are not in that city is refused.
 5. **Reorder** — use the arrows on a stop to move it up or down.
 6. **Read the itinerary** — open the *Overview* tab for the day-by-day plan grouped by city, then switch to *Calendar* for the month grid.
-7. **Check the budget** — open the *Budget* tab to see the split and the cost of each day. Go back to the builder, add an expensive activity such as the hot air balloon in Jaipur, and return: that day turns red and the over-budget warning appears at the top.
-8. **Share it** — press *Share* on the overview, copy the link and open it in a private window. The trip is readable with no account.
+7. **Check the budget** — open the *Budget* tab to see the split and the cost of each day. Go back to the builder, add an expensive activity such as *Hot air balloon over Amer* on the Jaipur stop, and return: that day turns red and the over-budget warning appears at the top.
+8. **Share it** — press *Share* on the overview, copy the link from the box that appears, and open it in a private window. The trip is readable with no account.
 9. **Resize the window** to phone width — the navigation collapses into a menu and every screen stacks.
 
 ## Tech stack
