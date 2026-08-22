@@ -58,6 +58,7 @@ class UserOut(BaseModel):
     name: str
     email: EmailStr
     language: str
+    avatar: str | None
     is_admin: bool
     created_at: datetime
 

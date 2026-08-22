@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import City, SavedCity, User
 from ..schemas import LANGUAGES, CityOut, SavedCityIn, UserOut, UserUpdate
+from ..uploads import remove_image, save_image
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -28,8 +29,32 @@ def update_me(payload: UserUpdate, db: Session = Depends(get_db), user: User = D
     return user
 
 
+@router.post("/me/avatar", response_model=UserOut)
+def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    user.avatar = save_image(file, str(user.id), folder="avatars")
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.delete("/me/avatar", response_model=UserOut)
+def delete_avatar(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    remove_image(user.avatar)
+    user.avatar = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 def delete_me(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    for trip in user.trips:
+        remove_image(trip.cover_image)
+    remove_image(user.avatar)
     db.delete(user)
     db.commit()
 

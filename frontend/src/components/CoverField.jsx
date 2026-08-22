@@ -12,7 +12,7 @@ export function pictureProblem(file) {
 }
 
 // Picks one image and shows it back. `saved` is whatever the server already holds.
-export default function CoverField({ label, hint, saved, file, error, onPick, onRemove, round = false }) {
+export default function CoverField({ label, hint, saved, file, error, onPick, onRemove, round = false, fallback }) {
   const input = useRef(null)
   const [preview, setPreview] = useState('')
 
@@ -28,6 +28,7 @@ export default function CoverField({ label, hint, saved, file, error, onPick, on
 
   const shown = preview || assetUrl(saved)
   const shape = round ? 'h-20 w-20 rounded-full' : 'h-24 w-36 rounded-lg'
+  const field = label.toLowerCase().replace(/\s+/g, '-')
 
   return (
     <div>
@@ -36,9 +37,11 @@ export default function CoverField({ label, hint, saved, file, error, onPick, on
         {shown ? (
           <img src={shown} alt="" className={`${shape} border border-slate-200 object-cover`} />
         ) : (
-          <span className={`${shape} flex items-center justify-center border border-dashed border-slate-200 bg-slate-50 text-slate-400`}>
-            <ImageIcon size={22} aria-hidden="true" />
-          </span>
+          fallback || (
+            <span className={`${shape} flex items-center justify-center border border-dashed border-slate-200 bg-slate-50 text-slate-400`}>
+              <ImageIcon size={22} aria-hidden="true" />
+            </span>
+          )
         )}
 
         <div className="flex flex-wrap gap-2">
@@ -57,8 +60,8 @@ export default function CoverField({ label, hint, saved, file, error, onPick, on
 
       <input
         ref={input}
-        id="cover"
-        name="cover"
+        id={field}
+        name={field}
         type="file"
         accept="image/jpeg,image/png"
         className="sr-only"

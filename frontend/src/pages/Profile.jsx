@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Heart, Plus, Trash2 } from 'lucide-react'
 import client, { readError } from '../api/client'
+import Avatar from '../components/Avatar'
+import CoverField, { pictureProblem } from '../components/CoverField'
 import FormInput from '../components/FormInput'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
@@ -32,6 +34,7 @@ export default function Profile() {
   const [saved, setSaved] = useState([])
   const [trips, setTrips] = useState([])
   const [adding, setAdding] = useState(null)
+  const [pictureError, setPictureError] = useState('')
 
   useEffect(() => {
     if (user) setForm({ name: user.name, language: user.language })
@@ -50,6 +53,34 @@ export default function Profile() {
       notify(`${city.name} removed from saved destinations.`)
     } catch (error) {
       notify(readError(error, 'Could not remove that destination.'), 'error')
+    }
+  }
+
+  // The picture is its own thing: it goes up as soon as it is picked, not on Save.
+  async function pickPhoto(file) {
+    const problem = pictureProblem(file)
+    setPictureError(problem)
+    if (problem) return
+
+    const body = new FormData()
+    body.append('file', file)
+    try {
+      const { data } = await client.post('/users/me/avatar', body)
+      setUser(data)
+      notify('Profile photo updated.')
+    } catch (error) {
+      setPictureError(readError(error, 'Could not save that photo.'))
+    }
+  }
+
+  async function dropPhoto() {
+    setPictureError('')
+    try {
+      const { data } = await client.delete('/users/me/avatar')
+      setUser(data)
+      notify('Profile photo removed.')
+    } catch (error) {
+      setPictureError(readError(error, 'Could not remove that photo.'))
     }
   }
 
@@ -93,6 +124,18 @@ export default function Profile() {
             {failed}
           </p>
         )}
+
+        <CoverField
+          label="Profile photo"
+          hint="Optional. JPG or PNG, up to 2 MB."
+          saved={user?.avatar}
+          file={null}
+          error={pictureError}
+          onPick={pickPhoto}
+          onRemove={dropPhoto}
+          round
+          fallback={<Avatar user={user} size="h-20 w-20" text="text-xl" />}
+        />
 
         <FormInput
           label="Name"

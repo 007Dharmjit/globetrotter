@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { BarChart3, Compass, Globe2, LayoutDashboard, LogOut, Map, Menu, User, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import Avatar from './Avatar'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -46,7 +47,7 @@ export default function Navbar() {
             </NavLink>
           ))}
           <NavLink to="/profile" className={linkClass}>
-            <User size={18} />
+            {user ? <Avatar user={user} size="h-6 w-6" text="text-[10px]" /> : <User size={18} />}
             {user ? user.name.split(' ')[0] : 'Profile'}
           </NavLink>
           {user && (
@@ -75,12 +76,16 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
           <div className="flex flex-col gap-1">
-            {[...mainLinks, { to: '/profile', label: user ? user.name.split(' ')[0] : 'Profile', icon: User }].map(({ to, label, icon: Icon, end }) => (
+            {mainLinks.map(({ to, label, icon: Icon, end }) => (
               <NavLink key={to} to={to} end={end} className={linkClass} onClick={() => setOpen(false)}>
                 <Icon size={18} />
                 {label}
               </NavLink>
             ))}
+            <NavLink to="/profile" className={linkClass} onClick={() => setOpen(false)}>
+              {user ? <Avatar user={user} size="h-6 w-6" text="text-[10px]" /> : <User size={18} />}
+              {user ? user.name.split(' ')[0] : 'Profile'}
+            </NavLink>
             {user && (
               <button
                 type="button"
