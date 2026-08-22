@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
+    Time,
     Enum,
     ForeignKey,
     Integer,
@@ -52,6 +53,55 @@ class Trip(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     user = relationship("User", back_populates="trips")
+    stops = relationship(
+        "Stop",
+        back_populates="trip",
+        cascade="all, delete-orphan",
+        order_by="Stop.order_index",
+    )
+
+
+class Stop(Base):
+    __tablename__ = "stops"
+    __table_args__ = (
+        UniqueConstraint("trip_id", "order_index", name="uq_stop_order"),
+        CheckConstraint("departure_date >= arrival_date", name="ck_stop_dates"),
+        CheckConstraint("transport_cost >= 0", name="ck_stop_transport"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    trip_id = Column(Integer, ForeignKey("trips.id", ondelete="CASCADE"), nullable=False, index=True)
+    city_id = Column(Integer, ForeignKey("cities.id"), nullable=False)
+    order_index = Column(Integer, nullable=False)
+    arrival_date = Column(Date, nullable=False)
+    departure_date = Column(Date, nullable=False)
+    transport_cost = Column(Numeric(10, 2), nullable=False, default=0)
+    stay_cost_override = Column(Numeric(10, 2))
+
+    trip = relationship("Trip", back_populates="stops")
+    city = relationship("City")
+    activities = relationship(
+        "StopActivity",
+        back_populates="stop",
+        cascade="all, delete-orphan",
+        order_by="StopActivity.scheduled_date",
+    )
+
+
+class StopActivity(Base):
+    __tablename__ = "stop_activities"
+    __table_args__ = (CheckConstraint("cost_override is null or cost_override >= 0", name="ck_stop_activity_cost"),)
+
+    id = Column(Integer, primary_key=True)
+    stop_id = Column(Integer, ForeignKey("stops.id", ondelete="CASCADE"), nullable=False, index=True)
+    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    scheduled_date = Column(Date, nullable=False)
+    start_time = Column(Time)
+    cost_override = Column(Numeric(10, 2))
+    notes = Column(String(200))
+
+    stop = relationship("Stop", back_populates="activities")
+    activity = relationship("Activity")
 
 
 class City(Base):

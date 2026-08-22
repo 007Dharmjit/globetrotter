@@ -1,5 +1,5 @@
 import re
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -149,3 +149,87 @@ class ActivityOut(BaseModel):
     cost: Decimal
     duration_hours: Decimal
     description: str | None
+
+
+class StopIn(BaseModel):
+    city_id: int
+    arrival_date: date
+    departure_date: date
+    transport_cost: Decimal = Decimal("0")
+    stay_cost_override: Decimal | None = None
+
+    @field_validator("transport_cost")
+    @classmethod
+    def check_transport(cls, value):
+        if value < 0:
+            raise ValueError("Transport cost cannot be negative.")
+        return value
+
+    @field_validator("stay_cost_override")
+    @classmethod
+    def check_stay(cls, value):
+        if value is not None and value < 0:
+            raise ValueError("Stay cost cannot be negative.")
+        return value
+
+    @model_validator(mode="after")
+    def check_dates(self):
+        if self.departure_date < self.arrival_date:
+            raise ValueError("Departure must be on or after arrival.")
+        return self
+
+
+class StopActivityIn(BaseModel):
+    activity_id: int
+    scheduled_date: date
+    start_time: time | None = None
+    cost_override: Decimal | None = None
+    notes: str | None = Field(default=None, max_length=200)
+
+    @field_validator("cost_override")
+    @classmethod
+    def check_cost(cls, value):
+        if value is not None and value < 0:
+            raise ValueError("Cost cannot be negative.")
+        return value
+
+    @field_validator("notes")
+    @classmethod
+    def tidy_notes(cls, value):
+        return value.strip() if value and value.strip() else None
+
+
+class StopActivityOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    stop_id: int
+    activity_id: int
+    scheduled_date: date
+    start_time: time | None
+    cost_override: Decimal | None
+    notes: str | None
+    activity: ActivityOut
+
+
+class StopOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    trip_id: int
+    city_id: int
+    order_index: int
+    arrival_date: date
+    departure_date: date
+    transport_cost: Decimal
+    stay_cost_override: Decimal | None
+    city: CityOut
+    activities: list[StopActivityOut]
+
+
+class TripDetail(TripOut):
+    stops: list[StopOut] = []
+
+
+class ReorderIn(BaseModel):
+    stop_ids: list[int] = Field(min_length=1)

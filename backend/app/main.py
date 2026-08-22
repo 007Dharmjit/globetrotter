@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import activities, auth, cities, trips, users
+from .routers import activities, auth, cities, stops, trips, users
 
 
 @asynccontextmanager
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(activities.router)
 app.include_router(auth.router)
 app.include_router(cities.router)
+app.include_router(stops.router)
 app.include_router(trips.router)
 app.include_router(users.router)
 
