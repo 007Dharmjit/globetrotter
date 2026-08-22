@@ -5,17 +5,16 @@ import client, { readError } from '../api/client'
 import CityCard from '../components/CityCard'
 import EmptyState from '../components/EmptyState'
 import Loader from '../components/Loader'
-import { useToast } from '../components/Toast'
 import TripCard from '../components/TripCard'
 import { useAuth } from '../context/AuthContext'
 import { formatMoney, toInputDate } from '../format'
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { notify } = useToast()
   const [trips, setTrips] = useState([])
   const [cities, setCities] = useState([])
   const [highlight, setHighlight] = useState(null)
+  const [failed, setFailed] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,14 +31,14 @@ export default function Dashboard() {
           .then(({ data: budget }) => setHighlight({ trip: next, budget }))
           .catch(() => setHighlight(null))
       })
-      .catch((error) => notify(readError(error, 'Could not load your trips.'), 'error'))
+      .catch((error) => setFailed(readError(error, 'Could not load your trips.')))
       .finally(() => setLoading(false))
 
     client
       .get('/cities/popular')
       .then(({ data }) => setCities(data))
       .catch(() => setCities([]))
-  }, [notify])
+  }, [])
 
   const today = toInputDate(new Date())
   const upcoming = trips.filter((trip) => trip.end_date >= today).slice(0, 3)
@@ -112,7 +111,15 @@ export default function Dashboard() {
           )}
         </div>
 
-        {loading ? (
+        {failed ? (
+          <div role="alert" className="card flex flex-col items-center gap-3 px-6 py-12 text-center">
+            <p className="text-base font-medium text-slate-900">Your trips could not be loaded</p>
+            <p className="text-sm text-slate-500">{failed}</p>
+            <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
+              Try again
+            </button>
+          </div>
+        ) : loading ? (
           <Loader rows={2} />
         ) : upcoming.length === 0 ? (
           <EmptyState

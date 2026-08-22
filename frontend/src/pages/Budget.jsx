@@ -102,7 +102,6 @@ export default function Budget() {
         <div className="space-y-6">
           {budget.total_budget && (
             <div
-              role="status"
               className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
                 budget.over_budget
                   ? 'border-red-200 bg-red-50 text-red-800'
