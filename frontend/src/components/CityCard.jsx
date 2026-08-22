@@ -1,3 +1,4 @@
+import { Heart } from 'lucide-react'
 import { formatMoney } from '../format'
 
 // Each region gets its own band colour so the catalogue reads as a set without any images.
@@ -22,10 +23,23 @@ function CostDots({ level }) {
   )
 }
 
-export default function CityCard({ city, action }) {
+export default function CityCard({ city, action, saved, onToggleSave }) {
   return (
     <article className="card flex flex-col overflow-hidden transition-shadow hover:shadow-md">
-      <div className={`h-24 bg-gradient-to-br ${REGION_TINT[city.region] || 'from-slate-300 to-slate-400'}`} />
+      <div className={`relative h-24 bg-gradient-to-br ${REGION_TINT[city.region] || 'from-slate-300 to-slate-400'}`}>
+        {onToggleSave && (
+          <button
+            type="button"
+            onClick={() => onToggleSave(city)}
+            aria-pressed={Boolean(saved)}
+            aria-label={saved ? `Remove ${city.name} from saved destinations` : `Save ${city.name}`}
+            title={saved ? 'Saved' : 'Save this destination'}
+            className="absolute right-3 top-3 rounded-full bg-white/90 p-2 text-slate-600 transition hover:bg-white active:scale-[0.98]"
+          >
+            <Heart size={16} className={saved ? 'fill-red-500 text-red-500' : ''} />
+          </button>
+        )}
+      </div>
 
       <div className="flex flex-1 flex-col p-6">
         <div className="flex items-start justify-between gap-3">

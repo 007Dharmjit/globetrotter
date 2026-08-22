@@ -33,6 +33,20 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+    saved_cities = relationship("SavedCity", back_populates="user", cascade="all, delete-orphan")
+
+
+class SavedCity(Base):
+    __tablename__ = "saved_cities"
+    __table_args__ = (UniqueConstraint("user_id", "city_id", name="uq_saved_city"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    city_id = Column(Integer, ForeignKey("cities.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    user = relationship("User", back_populates="saved_cities")
+    city = relationship("City")
 
 
 class Trip(Base):

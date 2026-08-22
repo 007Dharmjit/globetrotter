@@ -8,10 +8,12 @@ import ExploreTabs from '../components/ExploreTabs'
 import Loader from '../components/Loader'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import { useToast } from '../components/Toast'
 import { formatDateRange } from '../format'
 
 export default function CitySearch() {
   const navigate = useNavigate()
+  const { notify } = useToast()
   const [term, setTerm] = useState('')
   const [region, setRegion] = useState('')
   const [sort, setSort] = useState('popularity')
@@ -21,11 +23,34 @@ export default function CitySearch() {
   const [failed, setFailed] = useState('')
   const [adding, setAdding] = useState(null)
   const [trips, setTrips] = useState([])
+  const [savedIds, setSavedIds] = useState([])
 
   useEffect(() => {
     client.get('/cities/regions').then(({ data }) => setRegions(data)).catch(() => setRegions([]))
     client.get('/trips').then(({ data }) => setTrips(data)).catch(() => setTrips([]))
+    client
+      .get('/users/me/saved-cities')
+      .then(({ data }) => setSavedIds(data.map((city) => city.id)))
+      .catch(() => setSavedIds([]))
   }, [])
+
+  async function toggleSaved(city) {
+    const wasSaved = savedIds.includes(city.id)
+    // Flip straight away so the heart answers the tap, and put it back if the server disagrees.
+    setSavedIds((ids) => (wasSaved ? ids.filter((id) => id !== city.id) : [...ids, city.id]))
+    try {
+      if (wasSaved) {
+        await client.delete(`/users/me/saved-cities/${city.id}`)
+        notify(`${city.name} removed from saved destinations.`)
+      } else {
+        await client.post('/users/me/saved-cities', { city_id: city.id })
+        notify(`${city.name} saved.`)
+      }
+    } catch (error) {
+      setSavedIds((ids) => (wasSaved ? [...ids, city.id] : ids.filter((id) => id !== city.id)))
+      notify(readError(error, 'Could not update your saved destinations.'), 'error')
+    }
+  }
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ sort })
@@ -136,6 +161,8 @@ export default function CitySearch() {
             <CityCard
               key={city.id}
               city={city}
+              saved={savedIds.includes(city.id)}
+              onToggleSave={toggleSaved}
               action={
                 <button type="button" className="btn-secondary w-full" onClick={() => setAdding(city)}>
                   <Plus size={16} />

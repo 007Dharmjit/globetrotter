@@ -143,6 +143,10 @@ class CityOut(BaseModel):
     image_url: str | None
 
 
+class SavedCityIn(BaseModel):
+    city_id: int
+
+
 class ActivityOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

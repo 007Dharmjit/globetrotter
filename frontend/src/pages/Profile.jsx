@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Heart, Plus, Trash2 } from 'lucide-react'
 import client, { readError } from '../api/client'
 import FormInput from '../components/FormInput'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../context/AuthContext'
+import { formatDateRange } from '../format'
 import { nameProblem } from '../validation'
 
 const LANGUAGE_NAMES = {
@@ -18,6 +21,7 @@ const LANGUAGE_NAMES = {
 export default function Profile() {
   const { user, setUser, logout } = useAuth()
   const { notify } = useToast()
+  const navigate = useNavigate()
 
   const [form, setForm] = useState({ name: '', language: 'en' })
   const [languages, setLanguages] = useState(['en'])
@@ -25,6 +29,9 @@ export default function Profile() {
   const [failed, setFailed] = useState('')
   const [pending, setPending] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [saved, setSaved] = useState([])
+  const [trips, setTrips] = useState([])
+  const [adding, setAdding] = useState(null)
 
   useEffect(() => {
     if (user) setForm({ name: user.name, language: user.language })
@@ -32,7 +39,19 @@ export default function Profile() {
 
   useEffect(() => {
     client.get('/users/languages').then(({ data }) => setLanguages(data)).catch(() => setLanguages(['en']))
+    client.get('/users/me/saved-cities').then(({ data }) => setSaved(data)).catch(() => setSaved([]))
+    client.get('/trips').then(({ data }) => setTrips(data)).catch(() => setTrips([]))
   }, [])
+
+  async function removeSaved(city) {
+    try {
+      await client.delete(`/users/me/saved-cities/${city.id}`)
+      setSaved((list) => list.filter((item) => item.id !== city.id))
+      notify(`${city.name} removed from saved destinations.`)
+    } catch (error) {
+      notify(readError(error, 'Could not remove that destination.'), 'error')
+    }
+  }
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -119,6 +138,85 @@ export default function Profile() {
           </button>
         </div>
       </form>
+
+      <div className="card mt-6 p-6">
+        <h2 className="text-lg font-medium text-slate-900">Saved destinations</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Cities you hearted while exploring. Drop one into a trip when you are ready.
+        </p>
+
+        {saved.length === 0 ? (
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+            <Heart size={18} className="text-slate-400" />
+            <span>
+              Nothing saved yet — tap the heart on a city in{' '}
+              <Link to="/explore/cities" className="font-medium text-primary hover:underline">
+                Explore
+              </Link>
+              .
+            </span>
+          </div>
+        ) : (
+          <ul className="mt-4 divide-y divide-slate-100">
+            {saved.map((city) => (
+              <li key={city.id} className="flex flex-wrap items-center gap-3 py-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-slate-900">{city.name}</span>
+                  <span className="block text-xs text-slate-500">
+                    {city.country} · {city.region}
+                  </span>
+                </span>
+                <button type="button" className="btn-secondary" onClick={() => setAdding(city)}>
+                  <Plus size={16} />
+                  Add to trip
+                </button>
+                <button
+                  type="button"
+                  className="btn-danger"
+                  aria-label={`Remove ${city.name} from saved destinations`}
+                  onClick={() => removeSaved(city)}
+                >
+                  <Trash2 size={16} />
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <Modal
+        open={Boolean(adding)}
+        title={adding ? `Add ${adding.name} to which trip?` : ''}
+        helper="You will land in the builder with the dates ready to set."
+        onClose={() => setAdding(null)}
+      >
+        {trips.length === 0 ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">You have no trips yet. Create one and this city can go straight in.</p>
+            <Link to="/trips/new" className="btn-primary">
+              Plan a trip
+            </Link>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {trips.map((trip) => (
+              <li key={trip.id}>
+                <button
+                  type="button"
+                  className="w-full rounded-lg border border-slate-200 px-4 py-3 text-left transition hover:border-primary hover:bg-slate-50"
+                  onClick={() => navigate(`/trips/${trip.id}/build?city=${adding.id}`)}
+                >
+                  <span className="block text-sm font-medium text-slate-900">{trip.name}</span>
+                  <span className="block text-xs text-slate-500">
+                    {formatDateRange(trip.start_date, trip.end_date)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
 
       <div className="card mt-6 p-6">
         <h2 className="text-lg font-medium text-slate-900">Delete account</h2>
