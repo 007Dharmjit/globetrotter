@@ -1,10 +1,13 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Trip, User
-from ..schemas import TripCreate, TripIn, TripOut, TripSummary
+from ..budget import stop_cost
+from ..schemas import TripCreate, TripDetail, TripIn, TripOut, TripSummary
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
 
@@ -21,7 +24,15 @@ def owned_trip(trip_id: int, db: Session, user: User) -> Trip:
 @router.get("", response_model=list[TripSummary])
 def list_trips(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     trips = db.query(Trip).filter(Trip.user_id == user.id).order_by(Trip.start_date).all()
-    return [TripSummary.model_validate(trip) for trip in trips]
+    return [
+        TripSummary.model_validate(trip).model_copy(
+            update={
+                "stop_count": len(trip.stops),
+                "estimated_cost": sum((stop_cost(stop)["total"] for stop in trip.stops), Decimal("0")),
+            }
+        )
+        for trip in trips
+    ]
 
 
 @router.post("", response_model=TripOut, status_code=status.HTTP_201_CREATED)
@@ -33,7 +44,7 @@ def create_trip(payload: TripCreate, db: Session = Depends(get_db), user: User =
     return trip
 
 
-@router.get("/{trip_id}", response_model=TripOut)
+@router.get("/{trip_id}", response_model=TripDetail)
 def read_trip(trip_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return owned_trip(trip_id, db, user)
 

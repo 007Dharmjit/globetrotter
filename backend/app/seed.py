@@ -1,11 +1,22 @@
 """Fills the reference tables. Safe to run again: rows are matched and updated, never duplicated."""
 
+from datetime import date, timedelta
+
 from .auth import hash_password
 from .database import Base, SessionLocal, engine
-from .models import Activity, City, User
+from .models import Activity, City, Stop, StopActivity, Trip, User
 
 DEMO_EMAIL = "demo@globetrotter.app"
 DEMO_PASSWORD = "Demo@1234"
+
+SAMPLE_TRIP = "Rajasthan in a week"
+
+# city, nights, transport to reach it, and the activities to plan there (day offset from arrival)
+SAMPLE_STOPS = [
+    ("Delhi", 2, 4500, [("Old Delhi food trail", 0, "10:00"), ("Humayun's Tomb guided visit", 1, "15:30")]),
+    ("Jaipur", 3, 1800, [("Amber Fort and Sheesh Mahal", 0, "09:00"), ("Rajasthani thali at a haveli", 1, "20:00")]),
+    ("Udaipur", 2, 2200, [("Lake Pichola sunset boat ride", 0, "17:30"), ("City Palace and Crystal Gallery", 1, "11:00")]),
+]
 
 # name, country, region, cost_index, popularity, stay per day, meals per day (INR)
 CITIES = [
@@ -444,17 +455,67 @@ def seed_demo_user(db):
     return user, created
 
 
+def seed_sample_trip(db, user):
+    """One finished trip on the demo account so the app is never demonstrated from an empty screen."""
+    if db.query(Trip).filter(Trip.user_id == user.id, Trip.name == SAMPLE_TRIP).first():
+        return False
+
+    start = date.today() + timedelta(days=14)
+    total_nights = sum(nights for _, nights, _, _ in SAMPLE_STOPS)
+    trip = Trip(
+        user_id=user.id,
+        name=SAMPLE_TRIP,
+        description="Forts, lakes and a lot of food, from Delhi down to Udaipur.",
+        start_date=start,
+        end_date=start + timedelta(days=total_nights),
+        total_budget=90000,
+    )
+    db.add(trip)
+    db.flush()
+
+    arrival = start
+    for order, (city_name, nights, transport, planned) in enumerate(SAMPLE_STOPS):
+        city = db.query(City).filter(City.name == city_name, City.country == "India").one()
+        stop = Stop(
+            trip_id=trip.id,
+            city_id=city.id,
+            order_index=order,
+            arrival_date=arrival,
+            departure_date=arrival + timedelta(days=nights),
+            transport_cost=transport,
+        )
+        db.add(stop)
+        db.flush()
+
+        for activity_name, day_offset, start_time in planned:
+            activity = db.query(Activity).filter(Activity.city_id == city.id, Activity.name == activity_name).one()
+            db.add(
+                StopActivity(
+                    stop_id=stop.id,
+                    activity_id=activity.id,
+                    scheduled_date=arrival + timedelta(days=day_offset),
+                    start_time=start_time,
+                )
+            )
+        arrival = stop.departure_date
+
+    db.flush()
+    return True
+
+
 def main():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         new_cities = seed_cities(db)
         new_activities = seed_activities(db)
-        _, demo_created = seed_demo_user(db)
+        demo_user, demo_created = seed_demo_user(db)
+        sample_created = seed_sample_trip(db, demo_user)
         db.commit()
         print(f"Cities: {db.query(City).count()} total, {new_cities} added")
         print(f"Activities: {db.query(Activity).count()} total, {new_activities} added")
         print(f"Demo user: {DEMO_EMAIL} {'created' if demo_created else 'already present'}")
+        print(f"Sample trip: {'created' if sample_created else 'already present'}")
     finally:
         db.close()
 
