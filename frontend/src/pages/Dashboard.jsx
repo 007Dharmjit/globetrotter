@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Compass, Plus } from 'lucide-react'
 import client, { readError } from '../api/client'
+import CityCard from '../components/CityCard'
 import EmptyState from '../components/EmptyState'
 import Loader from '../components/Loader'
 import { useToast } from '../components/Toast'
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const { notify } = useToast()
   const [trips, setTrips] = useState([])
+  const [cities, setCities] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,6 +23,11 @@ export default function Dashboard() {
       .then(({ data }) => setTrips(data))
       .catch((error) => notify(readError(error, 'Could not load your trips.'), 'error'))
       .finally(() => setLoading(false))
+
+    client
+      .get('/cities/popular')
+      .then(({ data }) => setCities(data))
+      .catch(() => setCities([]))
   }, [notify])
 
   const today = toInputDate(new Date())
@@ -76,6 +83,30 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {cities.length > 0 && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-medium text-slate-900">Popular right now</h2>
+            <Link to="/explore/cities" className="text-sm font-medium text-primary hover:underline">
+              Explore all cities
+            </Link>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {cities.map((city) => (
+              <CityCard
+                key={city.id}
+                city={city}
+                action={
+                  <Link to={`/explore/activities?city=${city.id}`} className="btn-secondary w-full">
+                    See activities
+                  </Link>
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   )
 }
