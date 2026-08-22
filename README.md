@@ -18,6 +18,12 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates; eac
 
 **My Trips** — every trip as a card showing its dates, how many stops it has and what it is projected to cost, with view, edit and delete.
 
+**Explore cities** — search the catalogue by name or country, filter by region and sort by popularity, name or price. Each city shows its average stay and meal cost per day and a cost level, and can be added straight to one of your trips.
+
+**Explore activities** — pick a city and narrow what there is to do by category, maximum cost and maximum hours.
+
+**Itinerary builder** — add city stops with arrival and departure dates and what it cost to get there, move them up and down, and hang activities off each stop with a day and a start time. Stops must sit inside the trip and cannot overlap; an activity can only go on a day you are actually in that city.
+
 ## Quick start
 
 You need Python 3.11+, Node 18+ and PostgreSQL 14+ running locally.
@@ -61,7 +67,10 @@ Demo@1234
 2. The dashboard shows your upcoming trips. Press **Plan new trip**.
 3. Give the trip a name and a date range — try an end date before the start date to see the checks.
 4. Open **My Trips** to see the trip card with its dates, stop count and planned cost.
-5. Use **Edit** to rename or re-date the trip, or delete it from the same card.
+5. Open **Explore → cities**, search for a city and press **Add to trip** — you land in the builder with that city ready.
+6. Set the arrival and departure dates for the stop and add a second city after it. Try overlapping dates to see the clash explained.
+7. Press **Add activity** on a stop, pick something from that city and give it a day and a time.
+8. Use the arrows to reorder stops, and **Edit** to rename or re-date the trip.
 
 ## Tech stack
 
@@ -80,10 +89,12 @@ Demo@1234
 |---|---|
 | `users` | Name, email, password hash, language |
 | `trips` | Name, description, date range, optional budget, share flag |
+| `stops` | A city inside a trip: order, arrival and departure dates, travel cost, optional stay cost |
+| `stop_activities` | An activity planned inside a stop: day, optional start time, optional cost override and note |
 | `cities` | Seeded catalogue: country, region, cost index, popularity, average stay and meal cost per day |
 | `activities` | Seeded per city: category, cost and duration |
 
-Relationships: a user has many trips; a city has many activities.
+Relationships: a user has many trips; a trip has many ordered stops; a stop has many planned activities; a city has many activities.
 
 ## API
 
@@ -94,9 +105,18 @@ Relationships: a user has many trips; a city has many activities.
 | GET | `/api/users/me` | The signed-in traveller |
 | GET | `/api/trips` | Trips belonging to the signed-in traveller |
 | POST | `/api/trips` | Create a trip |
-| GET | `/api/trips/{id}` | One trip |
+| GET | `/api/trips/{id}` | One trip with its stops and their activities |
 | PUT | `/api/trips/{id}` | Update a trip |
 | DELETE | `/api/trips/{id}` | Delete a trip |
+| POST | `/api/trips/{id}/stops` | Add a city stop |
+| PUT | `/api/stops/{id}` | Change a stop |
+| DELETE | `/api/stops/{id}` | Remove a stop |
+| PUT | `/api/trips/{id}/stops/reorder` | Set the order of the stops |
+| POST | `/api/stops/{id}/activities` | Plan an activity inside a stop |
+| DELETE | `/api/stop-activities/{id}` | Take a planned activity off |
+| GET | `/api/cities` | Search cities by text, country or region |
+| GET | `/api/cities/popular` | Most popular cities |
+| GET | `/api/activities` | Activities in one city, with filters |
 | GET | `/api/health` | Service check |
 
 ## Folder structure
@@ -109,7 +129,8 @@ backend/
     models.py      SQLAlchemy models
     schemas.py     request and response validation
     auth.py        hashing, tokens, current user
-    routers/       auth, users, trips
+    budget.py      cost maths for a trip
+    routers/       auth, users, trips, stops, cities, activities
     seed.py        cities, activities and the demo account
   requirements.txt
 frontend/
