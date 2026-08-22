@@ -11,6 +11,10 @@ __pycache__/
 node_modules/
 frontend/dist/
 
+# uploaded images
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 # misc
 .DS_Store
 *.log

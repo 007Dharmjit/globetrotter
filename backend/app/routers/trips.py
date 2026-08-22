@@ -1,12 +1,13 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Trip, User
 from ..budget import stop_cost, trip_budget
+from ..uploads import remove_image, save_image
 from ..schemas import BudgetOut, TripCreate, TripDetail, TripIn, TripOut, TripSummary
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
@@ -77,8 +78,33 @@ def update_trip(trip_id: int, payload: TripIn, db: Session = Depends(get_db), us
     return trip
 
 
+@router.post("/{trip_id}/cover", response_model=TripOut)
+def upload_cover(
+    trip_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    trip = owned_trip(trip_id, db, user)
+    trip.cover_image = save_image(file, str(trip.id))
+    db.commit()
+    db.refresh(trip)
+    return trip
+
+
+@router.delete("/{trip_id}/cover", response_model=TripOut)
+def delete_cover(trip_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    trip = owned_trip(trip_id, db, user)
+    remove_image(trip.cover_image)
+    trip.cover_image = None
+    db.commit()
+    db.refresh(trip)
+    return trip
+
+
 @router.delete("/{trip_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_trip(trip_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     trip = owned_trip(trip_id, db, user)
+    remove_image(trip.cover_image)
     db.delete(trip)
     db.commit()

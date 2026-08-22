@@ -27,6 +27,7 @@ def ensure_columns():
     """Add columns introduced after a database was first created, without touching existing rows."""
     statements = [
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false",
+        "ALTER TABLE trips ADD COLUMN IF NOT EXISTS cover_image varchar(255)",
     ]
     with engine.begin() as conn:
         for statement in statements:

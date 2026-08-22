@@ -153,6 +153,7 @@ class TripOut(BaseModel):
     start_date: date
     end_date: date
     total_budget: Decimal | None
+    cover_image: str | None
     is_public: bool
     share_token: str | None
     created_at: datetime

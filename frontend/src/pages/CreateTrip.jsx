@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import client, { readError } from '../api/client'
+import CoverField, { pictureProblem } from '../components/CoverField'
 import FormInput from '../components/FormInput'
 import Loader from '../components/Loader'
 import PageHeader from '../components/PageHeader'
@@ -49,20 +50,23 @@ export default function CreateTrip() {
   const [failed, setFailed] = useState('')
   const [pending, setPending] = useState(false)
   const [loading, setLoading] = useState(isEdit)
+  const [cover, setCover] = useState(null)
+  const [savedCover, setSavedCover] = useState(null)
 
   useEffect(() => {
     if (!isEdit) return
     client
       .get(`/trips/${id}`)
-      .then(({ data }) =>
+      .then(({ data }) => {
         setForm({
           name: data.name,
           description: data.description || '',
           start_date: data.start_date,
           end_date: data.end_date,
           total_budget: data.total_budget ? String(Number(data.total_budget)) : '',
-        }),
-      )
+        })
+        setSavedCover(data.cover_image)
+      })
       .catch((error) => setFailed(readError(error, 'Could not load this trip.')))
       .finally(() => setLoading(false))
   }, [id, isEdit])
@@ -71,6 +75,33 @@ export default function CreateTrip() {
     setForm((current) => ({ ...current, [field]: e.target.value }))
     setErrors((current) => ({ ...current, [field]: '' }))
     setFailed('')
+  }
+
+  async function uploadCover(tripId) {
+    if (!cover) return
+    const body = new FormData()
+    body.append('file', cover)
+    await client.post(`/trips/${tripId}/cover`, body)
+  }
+
+  function pickCover(file) {
+    const problem = pictureProblem(file)
+    setErrors((current) => ({ ...current, cover: problem }))
+    setCover(problem ? null : file)
+  }
+
+  // In edit mode the saved picture goes as soon as it is removed; a pending pick just clears.
+  async function dropCover() {
+    setCover(null)
+    setErrors((current) => ({ ...current, cover: '' }))
+    if (!isEdit || !savedCover) return
+    try {
+      await client.delete(`/trips/${id}/cover`)
+      setSavedCover(null)
+      notify('Cover photo removed.')
+    } catch (error) {
+      setFailed(readError(error, 'Could not remove the cover photo.'))
+    }
   }
 
   async function onSubmit(e) {
@@ -91,10 +122,12 @@ export default function CreateTrip() {
     try {
       if (isEdit) {
         await client.put(`/trips/${id}`, body)
+        await uploadCover(id)
         notify('Trip updated.')
         navigate(`/trips/${id}`)
       } else {
         const { data } = await client.post('/trips', body)
+        await uploadCover(data.id)
         notify('Trip created. Now add your first stop.')
         navigate(`/trips/${data.id}/build`)
       }
@@ -143,6 +176,16 @@ export default function CreateTrip() {
           value={form.description}
           onChange={update('description')}
           error={errors.description}
+        />
+
+        <CoverField
+          label="Cover photo"
+          hint="Optional. JPG or PNG, up to 2 MB."
+          saved={savedCover}
+          file={cover}
+          error={errors.cover}
+          onPick={pickCover}
+          onRemove={dropCover}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">

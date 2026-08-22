@@ -4,6 +4,13 @@ const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 export const TOKEN_KEY = 'globetrotter_token'
 
+// Uploaded images are served by the API next to /api, not under it.
+const assetBase = baseURL.replace(/\/api\/?$/, '')
+
+export function assetUrl(path) {
+  return path ? `${assetBase}${path}` : ''
+}
+
 const client = axios.create({ baseURL, timeout: 15000 })
 
 client.interceptors.request.use((config) => {

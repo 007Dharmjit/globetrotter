@@ -76,6 +76,7 @@ class Trip(Base):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     total_budget = Column(Numeric(12, 2))
+    cover_image = Column(String(255))
     is_public = Column(Boolean, nullable=False, default=False)
     share_token = Column(String(32), unique=True, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

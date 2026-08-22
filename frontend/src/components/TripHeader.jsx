@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { CalendarDays, Wallet } from 'lucide-react'
 import { dayCount, formatDateRange, formatMoney } from '../format'
+import TripCover from './TripCover'
 
 function tabClass({ isActive }) {
   return [
@@ -14,6 +15,10 @@ export default function TripHeader({ trip, helper }) {
 
   return (
     <header className="mb-6">
+      {trip.cover_image && (
+        <TripCover trip={trip} height="h-40 sm:h-52" rounded="mb-5 rounded-xl border border-slate-200" />
+      )}
+
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{trip.name}</h1>
       {helper && <p className="mt-1 text-sm text-slate-500">{helper}</p>}
 

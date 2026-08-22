@@ -3,15 +3,18 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine, ensure_columns
 from .routers import activities, admin, auth, cities, share, stops, trips, users
+from .uploads import UPLOAD_ROOT
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     ensure_columns()
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -24,6 +27,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")
 
 app.include_router(activities.router)
 app.include_router(admin.router)
