@@ -36,6 +36,19 @@ class User(Base):
     saved_cities = relationship("SavedCity", back_populates="user", cascade="all, delete-orphan")
 
 
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    user = relationship("User")
+
+
 class SavedCity(Base):
     __tablename__ = "saved_cities"
     __table_args__ = (UniqueConstraint("user_id", "city_id", name="uq_saved_city"),)

@@ -69,16 +69,21 @@ export default function Login() {
               onChange={update('email')}
               error={errors.email}
             />
-            <FormInput
-              label="Password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Your password"
-              value={form.password}
-              onChange={update('password')}
-              error={errors.password}
-            />
+            <div>
+              <FormInput
+                label="Password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Your password"
+                value={form.password}
+                onChange={update('password')}
+                error={errors.password}
+              />
+              <Link to="/forgot" className="mt-2 inline-block text-xs font-medium text-primary hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <button type="submit" className="btn-primary w-full" disabled={pending}>
               {pending ? 'Logging in…' : 'Log in'}
             </button>

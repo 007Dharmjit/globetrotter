@@ -6,6 +6,13 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, mo
 
 PASSWORD_RULE = "Password must be at least 8 characters and include a letter and a number."
 
+
+def strong_password(value: str) -> str:
+    if len(value) < 8 or not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
+        raise ValueError(PASSWORD_RULE)
+    return value
+
+
 # Language only changes how the interface addresses you; the catalogue stays in English.
 LANGUAGES = ("en", "hi", "gu", "fr", "es")
 
@@ -31,9 +38,7 @@ class SignupIn(BaseModel):
     @field_validator("password")
     @classmethod
     def check_password(cls, value):
-        if len(value) < 8 or not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
-            raise ValueError(PASSWORD_RULE)
-        return value
+        return strong_password(value)
 
 
 class LoginIn(BaseModel):
@@ -61,6 +66,35 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class ForgotIn(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalise_email(cls, value):
+        return value.strip().lower()
+
+
+class ForgotOut(BaseModel):
+    message: str
+    # There is no mail server in an offline build, so the link comes straight back.
+    reset_link: str | None = None
+
+
+class ResetIn(BaseModel):
+    token: str = Field(min_length=1, max_length=64)
+    password: str = Field(max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, value):
+        return strong_password(value)
+
+
+class MessageOut(BaseModel):
+    message: str
 
 
 MAX_TRIP_DAYS = 60
