@@ -4,6 +4,7 @@ import { Ticket } from 'lucide-react'
 import client, { readError } from '../api/client'
 import ActivityCard from '../components/ActivityCard'
 import EmptyState from '../components/EmptyState'
+import ExploreTabs from '../components/ExploreTabs'
 import Loader from '../components/Loader'
 import PageHeader from '../components/PageHeader'
 
@@ -67,6 +68,8 @@ export default function ActivitySearch() {
         title="Explore activities"
         helper="Pick a city, then narrow by category, cost and duration before you plan the day."
       />
+
+      <ExploreTabs />
 
       <div className="card mb-6 grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
         <div>

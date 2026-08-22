@@ -4,6 +4,7 @@ import { MapPinned, Plus, Search } from 'lucide-react'
 import client, { readError } from '../api/client'
 import CityCard from '../components/CityCard'
 import EmptyState from '../components/EmptyState'
+import ExploreTabs from '../components/ExploreTabs'
 import Loader from '../components/Loader'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
@@ -56,6 +57,8 @@ export default function CitySearch() {
         title="Explore cities"
         helper="Search the catalogue and add a city straight to one of your trips."
       />
+
+      <ExploreTabs />
 
       <div className="card mb-6 grid gap-4 p-6 sm:grid-cols-3">
         <div className="sm:col-span-1">

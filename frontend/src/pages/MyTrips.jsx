@@ -55,13 +55,17 @@ export default function MyTrips() {
         }
       />
 
-      {failed && (
-        <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {failed}
-        </p>
-      )}
-
-      {loading ? (
+      {failed ? (
+        // Never fall through to the empty state here: we do not know that there are no trips,
+        // only that we could not fetch them.
+        <div role="alert" className="card flex flex-col items-center gap-3 px-6 py-12 text-center">
+          <p className="text-base font-medium text-slate-900">Your trips could not be loaded</p>
+          <p className="text-sm text-slate-500">{failed}</p>
+          <button type="button" className="btn-secondary" onClick={load}>
+            Try again
+          </button>
+        </div>
+      ) : loading ? (
         <Loader rows={3} />
       ) : trips.length === 0 ? (
         <EmptyState

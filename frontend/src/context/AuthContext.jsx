@@ -12,7 +12,11 @@ export function AuthProvider({ children }) {
     client
       .get('/users/me')
       .then(({ data }) => setUser(data))
-      .catch(() => localStorage.removeItem(TOKEN_KEY))
+      .catch((error) => {
+        // A server that cannot be reached is not a rejected session: keep the token so the
+        // traveller is still signed in once the API is back, and let the banner explain.
+        if (error.response) localStorage.removeItem(TOKEN_KEY)
+      })
       .finally(() => setLoading(false))
   }, [])
 
