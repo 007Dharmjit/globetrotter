@@ -1,6 +1,8 @@
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Column,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -27,6 +29,29 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     language = Column(String(10), nullable=False, default="en")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+
+
+class Trip(Base):
+    __tablename__ = "trips"
+    __table_args__ = (
+        CheckConstraint("end_date >= start_date", name="ck_trip_dates"),
+        CheckConstraint("total_budget is null or total_budget > 0", name="ck_trip_budget"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(500))
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    total_budget = Column(Numeric(12, 2))
+    is_public = Column(Boolean, nullable=False, default=False)
+    share_token = Column(String(32), unique=True, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    user = relationship("User", back_populates="trips")
 
 
 class City(Base):
