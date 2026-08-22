@@ -1,92 +1,60 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CalendarRange, List, MapPin, Plus } from 'lucide-react'
+import { CalendarRange, Check, Copy, List, MapPin, Plus, Share2 } from 'lucide-react'
 import client, { readError } from '../api/client'
 import EmptyState from '../components/EmptyState'
+import ItineraryDays, { buildDays } from '../components/ItineraryDays'
 import Loader from '../components/Loader'
+import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import { useToast } from '../components/Toast'
 import TripCalendar from '../components/TripCalendar'
 import TripHeader from '../components/TripHeader'
-import { formatDate, formatMoney, parseDate, toInputDate } from '../format'
 
-// Every date of the trip, tagged with the stop that covers it.
-export function buildDays(trip) {
-  const days = []
-  const cursor = parseDate(trip.start_date)
-  const last = parseDate(trip.end_date)
-
-  while (cursor <= last) {
-    const date = toInputDate(cursor)
-    // On a handover day two stops cover the same date. The day belongs to the city you are
-    // arriving in, but it still lists what was planned in either city so nothing goes missing.
-    const covering = trip.stops.filter((s) => s.arrival_date <= date && date <= s.departure_date)
-    const arriving = covering.find((s) => s.arrival_date === date)
-    days.push({
-      date,
-      stop: arriving || covering[0],
-      activities: covering.flatMap((s) => s.activities.filter((a) => a.scheduled_date === date)),
-    })
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return days
-}
-
-// Consecutive days in the same city belong to one section.
-function groupByCity(days) {
-  return days.reduce((groups, day) => {
-    const last = groups[groups.length - 1]
-    if (last && last.stop?.id === day.stop?.id) {
-      last.days.push(day)
-    } else {
-      groups.push({ stop: day.stop, days: [day] })
-    }
-    return groups
-  }, [])
-}
-
-function plannedCost(planned) {
-  return Number(planned.cost_override ?? planned.activity.cost)
-}
-
-function DayRow({ day, index }) {
-  return (
-    <div className="border-t border-slate-100 px-6 py-4 first:border-t-0">
-      <div className="flex items-baseline gap-3">
-        <p className="text-sm font-medium text-slate-900">Day {index}</p>
-        <p className="text-xs text-slate-500">{formatDate(day.date, { weekday: 'short', day: 'numeric', month: 'short' })}</p>
-      </div>
-
-      {day.activities.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">Nothing planned — a free day.</p>
-      ) : (
-        <ul className="mt-3 space-y-2">
-          {day.activities.map((planned) => (
-            <li key={planned.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900">{planned.activity.name}</p>
-                <p className="text-xs capitalize text-slate-500">
-                  {planned.activity.category} · {Number(planned.activity.duration_hours)} h
-                  {planned.notes ? ` · ${planned.notes}` : ''}
-                </p>
-              </div>
-              <div className="text-right text-xs text-slate-600">
-                {planned.start_time && <p className="font-medium text-slate-900">{planned.start_time.slice(0, 5)}</p>}
-                <p>{plannedCost(planned) === 0 ? 'Free' : formatMoney(plannedCost(planned))}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
 
 export default function ItineraryView() {
   const { id } = useParams()
+  const { notify } = useToast()
   const [trip, setTrip] = useState(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState('')
   const [mode, setMode] = useState('list')
+  const [share, setShare] = useState(null)
+  const [sharing, setSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function openShare() {
+    setSharing(true)
+    try {
+      const { data } = await client.post(`/trips/${id}/share`)
+      setShare(data)
+      setCopied(false)
+    } catch (error) {
+      notify(readError(error, 'Could not create a link for this trip.'), 'error')
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(share.share_url)
+      setCopied(true)
+    } catch {
+      // Some browsers refuse clipboard access; the link is on screen to copy by hand.
+      notify('Select the link above and copy it.', 'error')
+    }
+  }
+
+  async function stopSharing() {
+    try {
+      await client.delete(`/trips/${id}/share`)
+      setShare(null)
+      notify('This trip is private again.')
+    } catch (error) {
+      notify(readError(error, 'Could not stop sharing this trip.'), 'error')
+    }
+  }
 
   useEffect(() => {
     client
@@ -113,8 +81,6 @@ export default function ItineraryView() {
   }
 
   const days = buildDays(trip)
-  const groups = groupByCity(days)
-  let dayNumber = 0
 
   return (
     <section>
@@ -134,7 +100,7 @@ export default function ItineraryView() {
         />
       ) : (
         <>
-          <div className="mb-6 flex items-center gap-2">
+          <div className="mb-6 flex flex-wrap items-center gap-2">
             <button
               type="button"
               className={mode === 'list' ? 'btn-primary' : 'btn-secondary'}
@@ -153,42 +119,39 @@ export default function ItineraryView() {
               <CalendarRange size={16} />
               Calendar
             </button>
+
+            <button type="button" className="btn-secondary sm:ml-auto" onClick={openShare} disabled={sharing}>
+              <Share2 size={16} />
+              {sharing ? 'Creating link…' : 'Share'}
+            </button>
           </div>
 
-          {mode === 'list' ? (
-            <div className="space-y-6">
-              {groups.map((group, index) => (
-                <article key={index} className="card overflow-hidden">
-                  <header className="flex flex-wrap items-baseline justify-between gap-2 bg-slate-50 px-6 py-4">
-                    <div>
-                      <h2 className="text-lg font-medium text-slate-900">
-                        {group.stop ? group.stop.city.name : 'No city planned'}
-                      </h2>
-                      <p className="text-sm text-slate-500">
-                        {group.stop ? group.stop.city.country : 'These days are still free'}
-                      </p>
-                    </div>
-                    <p className="text-sm text-slate-600">
-                      {formatDate(group.days[0].date, { day: 'numeric', month: 'short' })}
-                      {group.days.length > 1 &&
-                        ` – ${formatDate(group.days[group.days.length - 1].date, { day: 'numeric', month: 'short' })}`}
-                      {' · '}
-                      {group.days.length} {group.days.length === 1 ? 'day' : 'days'}
-                    </p>
-                  </header>
+          {mode === 'list' ? <ItineraryDays days={days} /> : <TripCalendar trip={trip} days={days} />}
 
-                  <div>
-                    {group.days.map((day) => {
-                      dayNumber += 1
-                      return <DayRow key={day.date} day={day} index={dayNumber} />
-                    })}
-                  </div>
-                </article>
-              ))}
+          <Modal
+            open={Boolean(share)}
+            title="Anyone with this link can view the trip"
+            helper="They see the plan only — nothing can be changed and no account is needed."
+            onClose={() => setShare(null)}
+          >
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input readOnly aria-label="Share link" className="input" value={share?.share_url || ''} />
+                <button type="button" className="btn-primary shrink-0" onClick={copyLink}>
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" className="btn-danger" onClick={stopSharing}>
+                  Stop sharing
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setShare(null)}>
+                  Done
+                </button>
+              </div>
             </div>
-          ) : (
-            <TripCalendar trip={trip} days={days} />
-          )}
+          </Modal>
         </>
       )}
     </section>

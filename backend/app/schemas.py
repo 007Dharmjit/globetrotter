@@ -6,6 +6,9 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, mo
 
 PASSWORD_RULE = "Password must be at least 8 characters and include a letter and a number."
 
+# Language only changes how the interface addresses you; the catalogue stays in English.
+LANGUAGES = ("en", "hi", "gu", "fr", "es")
+
 
 class SignupIn(BaseModel):
     name: str = Field(max_length=80)
@@ -263,3 +266,30 @@ class BudgetOut(BaseModel):
     daily_limit: Decimal | None
     trip_days: int
     over_budget: bool
+
+
+class ShareOut(BaseModel):
+    is_public: bool
+    share_token: str | None
+    share_url: str | None
+
+
+class UserUpdate(BaseModel):
+    name: str = Field(max_length=80)
+    language: str = Field(default="en", max_length=10)
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value):
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("Name must be at least 2 characters.")
+        return value
+
+    @field_validator("language")
+    @classmethod
+    def check_language(cls, value):
+        value = value.strip().lower()
+        if value not in LANGUAGES:
+            raise ValueError("Choose one of the languages we support.")
+        return value

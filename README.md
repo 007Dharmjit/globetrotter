@@ -24,6 +24,10 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates; eac
 
 **Itinerary builder** — add city stops with arrival and departure dates and what it cost to get there, move them up and down, and hang activities off each stop with a day and a start time. Stops must sit inside the trip and cannot overlap; an activity can only go on a day you are actually in that city.
 
+**Itinerary view** — the trip read back day by day, grouped into city sections, with each activity's time, category, length and cost, and free days called out. A calendar toggle lays the same trip over a month grid where picking a day expands it.
+
+**Budget** — worked out on the server from the stops and what is planned in them: totals, a split between travel, stay, meals and activities, the cost of every day with days over your daily limit drawn in red, and a table per city. The dashboard carries a running total for your next trip.
+
 ## Quick start
 
 You need Python 3.11+, Node 18+ and PostgreSQL 14+ running locally.
@@ -71,6 +75,8 @@ Demo@1234
 6. Set the arrival and departure dates for the stop and add a second city after it. Try overlapping dates to see the clash explained.
 7. Press **Add activity** on a stop, pick something from that city and give it a day and a time.
 8. Use the arrows to reorder stops, and **Edit** to rename or re-date the trip.
+9. Open the **Overview** tab to read the trip day by day, and switch to **Calendar** to see it on a month grid.
+10. Open the **Budget** tab. Add an expensive activity in the builder and come back — the day turns red and the over-budget warning appears.
 
 ## Tech stack
 
@@ -117,6 +123,7 @@ Relationships: a user has many trips; a trip has many ordered stops; a stop has 
 | GET | `/api/cities` | Search cities by text, country or region |
 | GET | `/api/cities/popular` | Most popular cities |
 | GET | `/api/activities` | Activities in one city, with filters |
+| GET | `/api/trips/{id}/budget` | Cost breakdown by category, stop and day |
 | GET | `/api/health` | Service check |
 
 ## Folder structure
