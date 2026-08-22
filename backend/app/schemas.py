@@ -233,3 +233,33 @@ class TripDetail(TripOut):
 
 class ReorderIn(BaseModel):
     stop_ids: list[int] = Field(min_length=1)
+
+
+class BudgetByStop(BaseModel):
+    stop_id: int
+    city: str
+    country: str
+    nights: int
+    transport: Decimal
+    stay: Decimal
+    meals: Decimal
+    activities: Decimal
+    total: Decimal
+
+
+class BudgetByDay(BaseModel):
+    date: date
+    cost: Decimal
+    over_budget: bool
+
+
+class BudgetOut(BaseModel):
+    total: Decimal
+    total_budget: Decimal | None
+    by_category: dict[str, Decimal]
+    by_stop: list[BudgetByStop]
+    by_day: list[BudgetByDay]
+    avg_per_day: Decimal
+    daily_limit: Decimal | None
+    trip_days: int
+    over_budget: bool

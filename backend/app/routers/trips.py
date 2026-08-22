@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Trip, User
-from ..budget import stop_cost
-from ..schemas import TripCreate, TripDetail, TripIn, TripOut, TripSummary
+from ..budget import stop_cost, trip_budget
+from ..schemas import BudgetOut, TripCreate, TripDetail, TripIn, TripOut, TripSummary
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
 
@@ -47,6 +47,11 @@ def create_trip(payload: TripCreate, db: Session = Depends(get_db), user: User =
 @router.get("/{trip_id}", response_model=TripDetail)
 def read_trip(trip_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return owned_trip(trip_id, db, user)
+
+
+@router.get("/{trip_id}/budget", response_model=BudgetOut)
+def read_budget(trip_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return trip_budget(owned_trip(trip_id, db, user))
 
 
 @router.put("/{trip_id}", response_model=TripOut)

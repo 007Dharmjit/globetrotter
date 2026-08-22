@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Compass, Plus } from 'lucide-react'
+import { AlertTriangle, Compass, Plus, Wallet } from 'lucide-react'
 import client, { readError } from '../api/client'
 import CityCard from '../components/CityCard'
 import EmptyState from '../components/EmptyState'
@@ -8,19 +8,30 @@ import Loader from '../components/Loader'
 import { useToast } from '../components/Toast'
 import TripCard from '../components/TripCard'
 import { useAuth } from '../context/AuthContext'
-import { toInputDate } from '../format'
+import { formatMoney, toInputDate } from '../format'
 
 export default function Dashboard() {
   const { user } = useAuth()
   const { notify } = useToast()
   const [trips, setTrips] = useState([])
   const [cities, setCities] = useState([])
+  const [highlight, setHighlight] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     client
       .get('/trips')
-      .then(({ data }) => setTrips(data))
+      .then(({ data }) => {
+        setTrips(data)
+        // The nearest trip that has a budget gets a running total on the dashboard.
+        const today = toInputDate(new Date())
+        const next = data.find((trip) => trip.end_date >= today && trip.total_budget)
+        if (!next) return null
+        return client
+          .get(`/trips/${next.id}/budget`)
+          .then(({ data: budget }) => setHighlight({ trip: next, budget }))
+          .catch(() => setHighlight(null))
+      })
       .catch((error) => notify(readError(error, 'Could not load your trips.'), 'error'))
       .finally(() => setLoading(false))
 
@@ -50,6 +61,46 @@ export default function Dashboard() {
           Plan new trip
         </Link>
       </div>
+
+      {highlight && (
+        <Link
+          to={`/trips/${highlight.trip.id}/budget`}
+          className="card block p-6 transition-shadow hover:shadow-md"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                <Wallet size={14} />
+                Budget so far
+              </p>
+              <p className="mt-1 text-lg font-medium text-slate-900">{highlight.trip.name}</p>
+            </div>
+            <p className={`text-lg font-semibold ${highlight.budget.over_budget ? 'text-red-600' : 'text-slate-900'}`}>
+              {formatMoney(highlight.budget.total)}
+              <span className="text-sm font-normal text-slate-500"> of {formatMoney(highlight.budget.total_budget)}</span>
+            </p>
+          </div>
+
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={`h-full rounded-full ${highlight.budget.over_budget ? 'bg-red-500' : 'bg-primary'}`}
+              style={{
+                width: `${Math.min(
+                  100,
+                  (Number(highlight.budget.total) / Number(highlight.budget.total_budget)) * 100,
+                )}%`,
+              }}
+            />
+          </div>
+
+          {highlight.budget.over_budget && (
+            <p className="mt-3 flex items-center gap-1.5 text-sm text-red-700">
+              <AlertTriangle size={16} />
+              This plan is over budget — open it to see which days cost the most.
+            </p>
+          )}
+        </Link>
+      )}
 
       <div>
         <div className="mb-4 flex items-center justify-between">
