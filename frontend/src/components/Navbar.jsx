@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
-import { Compass, Globe2, LayoutDashboard, Map, Menu, User, X } from 'lucide-react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Compass, Globe2, LayoutDashboard, LogOut, Map, Menu, User, X } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -17,6 +18,14 @@ function linkClass({ isActive }) {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function signOut() {
+    setOpen(false)
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
@@ -33,10 +42,20 @@ export default function Navbar() {
               {label}
             </NavLink>
           ))}
-          <NavLink to="/profile" className={linkClass} aria-label="Profile">
+          <NavLink to="/profile" className={linkClass}>
             <User size={18} />
-            Profile
+            {user ? user.name.split(' ')[0] : 'Profile'}
           </NavLink>
+          {user && (
+            <button
+              type="button"
+              onClick={signOut}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <LogOut size={18} />
+              Log out
+            </button>
+          )}
         </div>
 
         <button
@@ -59,6 +78,16 @@ export default function Navbar() {
                 {label}
               </NavLink>
             ))}
+            {user && (
+              <button
+                type="button"
+                onClick={signOut}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                <LogOut size={18} />
+                Log out
+              </button>
+            )}
           </div>
         </div>
       )}
