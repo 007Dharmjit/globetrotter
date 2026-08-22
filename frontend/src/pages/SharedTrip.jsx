@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { CalendarDays, Link2Off, MapPin } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { CalendarDays, Copy, Link2Off, MapPin } from 'lucide-react'
 import client, { readError } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import ItineraryDays, { buildDays } from '../components/ItineraryDays'
 import Loader from '../components/Loader'
 import ShareButtons from '../components/ShareButtons'
+import { useToast } from '../components/Toast'
+import { useAuth } from '../context/AuthContext'
 import { dayCount, formatDateRange } from '../format'
 
 export default function SharedTrip() {
   const { token } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { notify } = useToast()
   const [trip, setTrip] = useState(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState('')
+  const [copying, setCopying] = useState(false)
 
   useEffect(() => {
     client
@@ -21,6 +27,25 @@ export default function SharedTrip() {
       .catch((error) => setFailed(readError(error, 'This link is not valid.')))
       .finally(() => setLoading(false))
   }, [token])
+
+  // A visitor with no account is sent to log in and comes straight back here afterwards.
+  async function copyTrip() {
+    if (!user) {
+      navigate('/login', { state: { from: `/share/${token}` } })
+      return
+    }
+
+    setCopying(true)
+    try {
+      const { data } = await client.post(`/share/${token}/copy`)
+      notify('Copied to your trips. The dates now start tomorrow.')
+      navigate(`/trips/${data.id}/build`)
+    } catch (error) {
+      notify(readError(error, 'Could not copy this trip.'), 'error')
+    } finally {
+      setCopying(false)
+    }
+  }
 
   if (loading) return <Loader rows={3} />
 
@@ -59,9 +84,16 @@ export default function SharedTrip() {
           </span>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button type="button" className="btn-primary" onClick={copyTrip} disabled={copying}>
+            <Copy size={18} />
+            {copying ? 'Copying…' : 'Copy trip'}
+          </button>
           <ShareButtons tripName={trip.name} url={window.location.href} />
         </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Copying makes it yours to edit, starting tomorrow. Nothing here changes.
+        </p>
       </header>
 
       {trip.stops.length === 0 ? (
