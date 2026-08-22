@@ -92,7 +92,7 @@ export default function StopCard({ stop, position, total, onMove, onEdit, onDele
                 </div>
                 <button
                   type="button"
-                  className="text-xs font-medium text-red-600 hover:underline"
+                  className="rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                   onClick={() => onRemoveActivity(planned)}
                 >
                   Remove

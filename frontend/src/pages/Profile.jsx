@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import client, { readError } from '../api/client'
 import FormInput from '../components/FormInput'
 import Modal from '../components/Modal'
@@ -19,7 +18,6 @@ const LANGUAGE_NAMES = {
 export default function Profile() {
   const { user, setUser, logout } = useAuth()
   const { notify } = useToast()
-  const navigate = useNavigate()
 
   const [form, setForm] = useState({ name: '', language: 'en' })
   const [languages, setLanguages] = useState(['en'])
@@ -58,7 +56,9 @@ export default function Profile() {
     try {
       await client.delete('/users/me')
       logout()
-      navigate('/signup', { replace: true })
+      // A full reload, so nothing of the deleted account is left in memory. A router
+      // navigation would lose to the guard's own redirect and land on the login page.
+      window.location.replace('/signup')
     } catch (error) {
       notify(readError(error, 'Could not delete your account.'), 'error')
     }
