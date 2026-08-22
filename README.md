@@ -30,13 +30,15 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates, eac
 
 **Explore cities** — search 47 cities by name or country, filter by region, sort by popularity, name or price. Each card shows the average stay and meal cost per day and a cost level. **Add to trip** asks which trip and drops you in the builder with that city ready.
 
-**Explore activities** — pick a city and narrow its activities by category, maximum cost and maximum hours.
+**Explore activities** — pick a city and narrow its activities by category, maximum cost and maximum hours. **Add to trip** offers the stops you already have in that city, asks which day and time, and turns into a Remove once it is in.
 
 **Saved destinations** — heart a city while exploring and it waits on your profile, ready to drop into a trip or remove.
 
 **Itinerary builder** — add city stops with arrival and departure dates and what it cost to get there, reorder them, and hang activities off each stop with a day and a start time. A stop must sit inside the trip and cannot overlap another; an activity can only go on a day you are in that city.
 
 **Reorder activities** — inside a stop, drag an activity by its handle to move it, with the keyboard or a mouse, or use the arrows on a touch screen. The order is stored and the itinerary and budget read it back.
+
+**Edit in the calendar** — open a day in the calendar to drag its activities into order, or open one to change its day, start time, cost or note, or take it off the trip — without leaving the view.
 
 **Itinerary view** — the trip read back day by day, grouped into city sections, each activity with its time, category, length and cost, and free days called out. A calendar toggle lays the same trip over a month grid where picking a day expands it.
 
@@ -48,7 +50,7 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates, eac
 
 **Send it on** — WhatsApp, X and email buttons sit beside the link, on the share panel and on the shared page itself, each carrying the trip name.
 
-**Profile** — change your name and interface language, set a profile photo, or delete your account and everything in it. The photo saves the moment it is picked and follows you into the navigation bar; without one you get your initials.
+**Profile** — change your name, email and interface language, set a profile photo, or delete your account and everything in it. Moving your email moves your login, so it asks for your current password first and refuses an address another account already holds. The photo saves the moment it is picked and follows you into the navigation bar; without one you get your initials.
 
 **Analytics** — administrators get a dashboard: totals, trips created over the last fortnight, the most visited cities, the most planned activities and the newest travellers.
 
@@ -56,7 +58,7 @@ GlobeTrotter keeps them together. A trip is a list of city stops with dates, eac
 
 ## The thirteen screens
 
-The brief lists thirteen screens. All thirteen are built; three carry a note where we made a deliberate call.
+The brief lists thirteen screens. Every component named in it is built; one carries a note.
 
 | # | Screen | Where it lives | State |
 |---|---|---|---|
@@ -67,18 +69,16 @@ The brief lists thirteen screens. All thirteen are built; three carry a note whe
 | 5 | Itinerary Builder | `/trips/:id/build` | Add stops with city and dates, hang activities off them, reorder both |
 | 6 | Itinerary View | `/trips/:id` | Day-wise layout, city headers, activity blocks with time and cost, list / calendar toggle |
 | 7 | City Search | `/explore/cities` | Search, country and region filters, cost index and popularity, *Add to trip* |
-| 8 | Activity Search | `/explore/activities` | Filters by category, cost and duration, with descriptions — see note |
+| 8 | Activity Search | `/explore/activities` | Filters by category, cost and duration, add and remove straight into a trip, description and category banner — see note |
 | 9 | Budget & Cost Breakdown | `/trips/:id/budget` | Transport, stay, activities and meals; pie and per-day bars; average per day; over-budget days in red |
-| 10 | Calendar / Timeline | Calendar toggle on `/trips/:id` | Month grid with expandable days; reordering and editing happen in the builder — see note |
+| 10 | Calendar / Timeline | Calendar toggle on `/trips/:id` | Month grid, expandable days, drag a day's activities into order, and edit a day, time, cost or note in place |
 | 11 | Shared / Public Itinerary | `/share/:token` | Public URL, read-only summary, *Copy trip*, WhatsApp / X / email buttons |
-| 12 | Profile / Settings | `/profile` | Name, profile photo, language, saved destinations, delete account — see note |
+| 12 | Profile / Settings | `/profile` | Name, email, profile photo, language, saved destinations, delete account |
 | 13 | Admin / Analytics | `/admin` | Totals, trips per day, top cities and activities, and the traveller table with deactivate, reactivate and delete |
 
-Three notes, so the table above is not read as more than it says:
+One note, so the table above is not read as more than it says:
 
-- **Screen 8 has no activity photographs.** The catalogue is seeded on your own machine and calls nothing on the internet, so there are no pictures to seed with. Each activity carries a description, a category chip, its cost and its length instead, and cities are told apart by a colour band per region.
-- **Screen 10 is read-only.** The calendar shows the plan and expands a day; adding, editing and reordering all happen in the builder, where the dates and the stop are chosen together. Activities are reordered by dragging there.
-- **Screen 12 does not let you edit your email.** It is what you log in with, so changing it would need a confirmation round-trip we have no mail service for. Name, photo and language are all editable, and the account can be deleted outright.
+- **Screen 8 ships no activity photographs.** `activities.image_url` exists and a card shows the picture when one is set, but the seeded catalogue leaves it empty: the data is seeded on your own machine and calls nothing on the internet, so there is nothing to seed it from. Rather than leave a grey box, each card leads with a banner in its category's colour and icon, the same way city cards use a colour band per region.
 
 ## Quick start
 
@@ -148,7 +148,7 @@ DATABASE_URL=postgresql://YOUR_USERNAME@localhost:5432/globetrotter
 3. **Add cities** — go to *Explore*, search for a city and press *Add to trip*. You land in the builder with that city selected; set the arrival and departure dates. Add a second city after it, and try overlapping dates to see the clash explained.
 4. **Add activities** — press *Add activity* on a stop, pick something from that city and give it a day and a time. Picking a day you are not in that city is refused.
 5. **Reorder** — use the arrows on a stop to move it up or down, and drag an activity by its handle to change the order inside a stop.
-6. **Read the itinerary** — open the *Overview* tab for the day-by-day plan grouped by city, then switch to *Calendar* for the month grid.
+6. **Read the itinerary** — open the *Overview* tab for the day-by-day plan grouped by city, then switch to *Calendar* for the month grid. Pick a day, drag its activities into a different order, then open one and give it a start time.
 7. **Check the budget** — open the *Budget* tab to see the split and the cost of each day. Go back to the builder, add an expensive activity such as *Hot air balloon over Amer* on the Jaipur stop, and return: that day turns red and the over-budget warning appears at the top.
 8. **Share it** — press *Share* on the overview, copy the link from the box that appears, and open it in a private window. The trip is readable with no account.
 9. **Copy it** — press *Copy trip* on that shared page. Signed out you are asked to log in and land back on the page; signed in the whole itinerary is copied into your own trips, starting tomorrow.
@@ -181,11 +181,11 @@ Nothing calls out to the internet: the city and activity catalogue is seeded loc
 | `stop_activities` | An activity planned inside a stop: position, day, optional start time, optional cost override, note |
 | `saved_cities` | A city one traveller has hearted, once each |
 | `cities` | Seeded: country, region, cost index, popularity, average stay and meal cost per day |
-| `activities` | Seeded per city: category, cost, duration |
+| `activities` | Seeded per city: category, cost, duration, optional picture |
 
 A user has many trips; a trip has many ordered stops; a stop has many ordered activities; a city has many activities. Deleting a trip takes its stops and their activities with it, and deleting a user takes their trips, saved cities and reset tokens.
 
-Columns added after the first release are applied on start-up, guarded so an existing database keeps its rows: `users.avatar`, `users.is_admin`, `users.is_active`, `trips.cover_image` and `stop_activities.order_index`, the last filled from the order the activities were already shown in. Uploaded pictures live on disk in `backend/uploads/` and are served from `/uploads`; the database only stores the path.
+Columns added after the first release are applied on start-up, guarded so an existing database keeps its rows: `users.avatar`, `users.is_admin`, `users.is_active`, `trips.cover_image`, `activities.image_url` and `stop_activities.order_index`, the last filled from the order the activities were already shown in. Uploaded pictures live on disk in `backend/uploads/` and are served from `/uploads`; the database only stores the path.
 
 ## API
 
@@ -194,7 +194,7 @@ All endpoints sit under `/api` and answer JSON. Everything except signup, login 
 - **Auth** — `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/forgot`, `POST /api/auth/reset`
 - **Users** — `GET/PUT/DELETE /api/users/me`, `POST/DELETE /api/users/me/avatar`, `GET /api/users/languages`, `GET/POST /api/users/me/saved-cities`, `DELETE /api/users/me/saved-cities/{city_id}`
 - **Trips** — `GET/POST /api/trips`, `GET/PUT/DELETE /api/trips/{id}`, `POST/DELETE /api/trips/{id}/cover`, `GET /api/trips/{id}/budget`
-- **Stops and activities** — `POST /api/trips/{id}/stops`, `PUT/DELETE /api/stops/{id}`, `PUT /api/trips/{id}/stops/reorder`, `POST /api/stops/{id}/activities`, `PUT /api/stops/{id}/activities/reorder`, `DELETE /api/stop-activities/{id}`
+- **Stops and activities** — `POST /api/trips/{id}/stops`, `PUT/DELETE /api/stops/{id}`, `PUT /api/trips/{id}/stops/reorder`, `POST /api/stops/{id}/activities`, `PUT /api/stops/{id}/activities/reorder`, `PUT/DELETE /api/stop-activities/{id}`
 - **Catalogue** — `GET /api/cities`, `GET /api/cities/popular`, `GET /api/cities/regions`, `GET /api/activities`, `GET /api/activities/categories`
 - **Share** — `POST/DELETE /api/trips/{id}/share`, `GET /api/share/{token}`, `POST /api/share/{token}/copy`
 - **Administration** — `GET /api/admin/stats`, `PATCH/DELETE /api/admin/users/{id}`
@@ -213,7 +213,7 @@ The two upload endpoints take `multipart/form-data` with one `file` field; every
 | POST | `/api/auth/forgot` | Start a password reset; answers the same whether or not the email is registered |
 | POST | `/api/auth/reset` | Set a new password from a reset token |
 | GET | `/api/users/me` | The signed-in traveller |
-| PUT | `/api/users/me` | Change name and language |
+| PUT | `/api/users/me` | Change name, email and language; a new email needs the current password |
 | DELETE | `/api/users/me` | Delete the account and everything in it |
 | POST | `/api/users/me/avatar` | Upload a profile photo (JPG or PNG, 2 MB) |
 | DELETE | `/api/users/me/avatar` | Remove the profile photo |
@@ -245,6 +245,7 @@ The two upload endpoints take `multipart/form-data` with one `file` field; every
 | PUT | `/api/trips/{id}/stops/reorder` | Set the order of the stops |
 | POST | `/api/stops/{id}/activities` | Plan an activity inside a stop |
 | PUT | `/api/stops/{id}/activities/reorder` | Set the order of the activities in a stop |
+| PUT | `/api/stop-activities/{id}` | Change a planned activity's day, time, cost or note |
 | DELETE | `/api/stop-activities/{id}` | Take a planned activity off |
 
 **Catalogue and sharing**

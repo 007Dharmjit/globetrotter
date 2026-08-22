@@ -194,6 +194,7 @@ class ActivityOut(BaseModel):
     cost: Decimal
     duration_hours: Decimal
     description: str | None
+    image_url: str | None
 
 
 class StopIn(BaseModel):
@@ -324,6 +325,14 @@ class ShareOut(BaseModel):
 class UserUpdate(BaseModel):
     name: str = Field(max_length=80)
     language: str = Field(default="en", max_length=10)
+    email: EmailStr | None = None
+    # Only needed when the email is actually changing; see PUT /api/users/me.
+    current_password: str | None = None
+
+    @field_validator("email")
+    @classmethod
+    def normalise_email(cls, value):
+        return value.strip().lower() if value else None
 
     @field_validator("name")
     @classmethod

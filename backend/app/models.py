@@ -176,5 +176,6 @@ class Activity(Base):
     cost = Column(Numeric(10, 2), nullable=False, default=0)
     duration_hours = Column(Numeric(4, 1), nullable=False)
     description = Column(Text)
+    image_url = Column(String(255))
 
     city = relationship("City", back_populates="activities")

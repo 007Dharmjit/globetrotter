@@ -30,6 +30,7 @@ def ensure_columns():
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar varchar(255)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true",
         "ALTER TABLE trips ADD COLUMN IF NOT EXISTS cover_image varchar(255)",
+        "ALTER TABLE activities ADD COLUMN IF NOT EXISTS image_url varchar(255)",
         # Added nullable, filled from the order the activities were already shown in, then locked
         # down. Rows that already carry a position are left alone, so a re-run never reshuffles.
         "ALTER TABLE stop_activities ADD COLUMN IF NOT EXISTS order_index integer",

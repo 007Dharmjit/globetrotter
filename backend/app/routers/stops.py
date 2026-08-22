@@ -114,15 +114,7 @@ def reorder_stops(trip_id: int, payload: ReorderIn, db: Session = Depends(get_db
     return sorted(by_id.values(), key=lambda stop: stop.order_index)
 
 
-@router.post("/api/stops/{stop_id}/activities", response_model=StopActivityOut, status_code=status.HTTP_201_CREATED)
-def add_activity(
-    stop_id: int,
-    payload: StopActivityIn,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    stop = owned_stop(stop_id, db, user)
-
+def check_activity_fits(stop: Stop, payload: StopActivityIn, db: Session):
     activity = db.get(Activity, payload.activity_id)
     if activity is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "That activity does not exist.")
@@ -136,6 +128,17 @@ def add_activity(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             f"Pick a day between {stop.arrival_date} and {stop.departure_date}.",
         )
+
+
+@router.post("/api/stops/{stop_id}/activities", response_model=StopActivityOut, status_code=status.HTTP_201_CREATED)
+def add_activity(
+    stop_id: int,
+    payload: StopActivityIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    stop = owned_stop(stop_id, db, user)
+    check_activity_fits(stop, payload, db)
 
     next_index = max((planned.order_index for planned in stop.activities), default=-1) + 1
     planned = StopActivity(stop_id=stop.id, order_index=next_index, **payload.model_dump())
@@ -166,6 +169,26 @@ def reorder_activities(
     db.commit()
 
     return sorted(by_id.values(), key=lambda planned: planned.order_index)
+
+
+@router.put("/api/stop-activities/{planned_id}", response_model=StopActivityOut)
+def edit_activity(
+    planned_id: int,
+    payload: StopActivityIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    planned = db.get(StopActivity, planned_id)
+    if planned is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "That activity is not in your plan.")
+    stop = owned_stop(planned.stop_id, db, user)
+    check_activity_fits(stop, payload, db)
+
+    for field, value in payload.model_dump().items():
+        setattr(planned, field, value)
+    db.commit()
+    db.refresh(planned)
+    return planned
 
 
 @router.delete("/api/stop-activities/{planned_id}", status_code=status.HTTP_204_NO_CONTENT)

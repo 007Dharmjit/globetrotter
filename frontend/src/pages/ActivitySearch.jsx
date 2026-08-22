@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Ticket } from 'lucide-react'
+import { Check, Plus, Ticket } from 'lucide-react'
 import client, { readError } from '../api/client'
 import ActivityCard from '../components/ActivityCard'
+import AddToStopModal from '../components/AddToStopModal'
 import EmptyState from '../components/EmptyState'
 import ExploreTabs from '../components/ExploreTabs'
 import Loader from '../components/Loader'
 import PageHeader from '../components/PageHeader'
+import { useToast } from '../components/Toast'
 
 export default function ActivitySearch() {
   const [params, setParams] = useSearchParams()
@@ -20,6 +22,10 @@ export default function ActivitySearch() {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState('')
+  const [adding, setAdding] = useState(null)
+  // What this visit put into a trip, so the card can offer to take it straight back off.
+  const [planned, setPlanned] = useState({})
+  const { notify } = useToast()
 
   const costProblem = maxCost !== '' && Number(maxCost) < 0 ? 'Cost cannot be negative.' : ''
   const durationProblem = maxDuration !== '' && Number(maxDuration) <= 0 ? 'Hours must be more than zero.' : ''
@@ -54,6 +60,27 @@ export default function ActivitySearch() {
     }, 200)
     return () => clearTimeout(timer)
   }, [cityId, category, maxCost, maxDuration, costProblem, durationProblem])
+
+  function onAdded({ planned: row, stop }) {
+    setPlanned((current) => ({ ...current, [row.activity_id]: row }))
+    setAdding(null)
+    notify(`Added to ${stop.trip.name} on ${row.scheduled_date}.`)
+  }
+
+  async function undoAdd(activity) {
+    const row = planned[activity.id]
+    try {
+      await client.delete(`/stop-activities/${row.id}`)
+      setPlanned((current) => {
+        const next = { ...current }
+        delete next[activity.id]
+        return next
+      })
+      notify(`${activity.name} taken off.`)
+    } catch (error) {
+      notify(readError(error, 'Could not remove this activity.'), 'error')
+    }
+  }
 
   function pickCity(value) {
     const next = new URLSearchParams(params)
@@ -173,10 +200,38 @@ export default function ActivitySearch() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {activities.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              action={
+                planned[activity.id] ? (
+                  <div className="flex items-center gap-2">
+                    <span className="chip bg-green-50 text-green-700">
+                      <Check size={14} className="mr-1" />
+                      In your trip
+                    </span>
+                    <button type="button" className="btn-danger flex-1" onClick={() => undoAdd(activity)}>
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn-secondary w-full" onClick={() => setAdding(activity)}>
+                    <Plus size={16} />
+                    Add to trip
+                  </button>
+                )
+              }
+            />
           ))}
         </div>
       )}
+
+      <AddToStopModal
+        open={Boolean(adding)}
+        activity={adding}
+        onClose={() => setAdding(null)}
+        onAdded={onAdded}
+      />
     </section>
   )
 }

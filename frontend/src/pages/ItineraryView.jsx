@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { CalendarRange, Check, Copy, List, MapPin, Plus, Share2 } from 'lucide-react'
 import client, { readError } from '../api/client'
@@ -7,6 +7,7 @@ import ItineraryDays, { buildDays } from '../components/ItineraryDays'
 import Loader from '../components/Loader'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import PlannedActivityModal from '../components/PlannedActivityModal'
 import ShareButtons from '../components/ShareButtons'
 import { useToast } from '../components/Toast'
 import TripCalendar from '../components/TripCalendar'
@@ -23,6 +24,7 @@ export default function ItineraryView() {
   const [share, setShare] = useState(null)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [editing, setEditing] = useState(null)
 
   async function openShare() {
     setSharing(true)
@@ -57,13 +59,61 @@ export default function ItineraryView() {
     }
   }
 
+  const load = useCallback(
+    () =>
+      client
+        .get(`/trips/${id}`)
+        .then(({ data }) => setTrip(data))
+        .catch((error) => setFailed(readError(error, 'Could not load this trip.')))
+        .finally(() => setLoading(false)),
+    [id],
+  )
+
   useEffect(() => {
-    client
-      .get(`/trips/${id}`)
-      .then(({ data }) => setTrip(data))
-      .catch((error) => setFailed(readError(error, 'Could not load this trip.')))
-      .finally(() => setLoading(false))
-  }, [id])
+    load()
+  }, [load])
+
+  // The calendar reorders one day at a time; the stop's whole order comes back already spliced.
+  async function reorderActivities(stop, activityIds) {
+    const before = trip
+    setTrip((current) => ({
+      ...current,
+      stops: current.stops.map((s) =>
+        s.id === stop.id
+          ? { ...s, activities: activityIds.map((planId) => s.activities.find((a) => a.id === planId)) }
+          : s,
+      ),
+    }))
+
+    try {
+      await client.put(`/stops/${stop.id}/activities/reorder`, { activity_ids: activityIds })
+    } catch (error) {
+      setTrip(before)
+      notify(readError(error, 'Could not reorder the activities.'), 'error')
+    }
+  }
+
+  async function saveActivity(body) {
+    try {
+      await client.put(`/stop-activities/${editing.planned.id}`, body)
+      notify('Activity updated.')
+      setEditing(null)
+      await load()
+    } catch (error) {
+      throw new Error(readError(error, 'Could not save this activity.'))
+    }
+  }
+
+  async function removeActivity(planned) {
+    try {
+      await client.delete(`/stop-activities/${planned.id}`)
+      notify('Activity removed.')
+      setEditing(null)
+      await load()
+    } catch (error) {
+      notify(readError(error, 'Could not remove this activity.'), 'error')
+    }
+  }
 
   if (loading) return <Loader rows={3} />
 
@@ -127,7 +177,25 @@ export default function ItineraryView() {
             </button>
           </div>
 
-          {mode === 'list' ? <ItineraryDays days={days} /> : <TripCalendar trip={trip} days={days} />}
+          {mode === 'list' ? (
+            <ItineraryDays days={days} />
+          ) : (
+            <TripCalendar
+              trip={trip}
+              days={days}
+              onReorder={reorderActivities}
+              onEdit={(planned, stop) => setEditing({ planned, stop })}
+            />
+          )}
+
+          <PlannedActivityModal
+            open={Boolean(editing)}
+            planned={editing?.planned}
+            stop={editing?.stop}
+            onClose={() => setEditing(null)}
+            onSave={saveActivity}
+            onRemove={removeActivity}
+          />
 
           <Modal
             open={Boolean(share)}

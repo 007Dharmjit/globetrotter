@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_user
+from ..auth import get_current_user, verify_password
 from ..database import get_db
 from ..models import City, SavedCity, User
 from ..schemas import LANGUAGES, CityOut, SavedCityIn, UserOut, UserUpdate
@@ -24,6 +24,15 @@ def supported_languages():
 def update_me(payload: UserUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     user.name = payload.name
     user.language = payload.language
+
+    if payload.email and payload.email != user.email:
+        # The email is what you log in with, so an unattended session cannot quietly move it.
+        if not payload.current_password or not verify_password(payload.current_password, user.password_hash):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Enter your current password to change your email.")
+        if db.query(User).filter(User.email == payload.email, User.id != user.id).first():
+            raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
+        user.email = payload.email
+
     db.commit()
     db.refresh(user)
     return user

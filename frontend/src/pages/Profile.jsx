@@ -10,7 +10,7 @@ import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../context/AuthContext'
 import { formatDateRange } from '../format'
-import { nameProblem } from '../validation'
+import { emailProblem, nameProblem } from '../validation'
 
 const LANGUAGE_NAMES = {
   en: 'English',
@@ -25,7 +25,7 @@ export default function Profile() {
   const { notify } = useToast()
   const navigate = useNavigate()
 
-  const [form, setForm] = useState({ name: '', language: 'en' })
+  const [form, setForm] = useState({ name: '', email: '', language: 'en', currentPassword: '' })
   const [languages, setLanguages] = useState(['en'])
   const [errors, setErrors] = useState({})
   const [failed, setFailed] = useState('')
@@ -36,8 +36,10 @@ export default function Profile() {
   const [adding, setAdding] = useState(null)
   const [pictureError, setPictureError] = useState('')
 
+  const movingEmail = Boolean(user && form.email.trim().toLowerCase() !== user.email)
+
   useEffect(() => {
-    if (user) setForm({ name: user.name, language: user.language })
+    if (user) setForm((current) => ({ ...current, name: user.name, email: user.email, language: user.language }))
   }, [user])
 
   useEffect(() => {
@@ -86,17 +88,30 @@ export default function Profile() {
 
   async function onSubmit(e) {
     e.preventDefault()
-    const found = { name: nameProblem(form.name) }
+    const found = { name: nameProblem(form.name), email: emailProblem(form.email) }
+    // Moving the email moves the login, so it has to be confirmed with the current password.
+    if (!found.email && movingEmail && !form.currentPassword) {
+      found.currentPassword = 'Enter your current password to change your email.'
+    }
     setErrors(found)
-    if (found.name) return
+    if (Object.values(found).some(Boolean)) return
 
     setPending(true)
     try {
-      const { data } = await client.put('/users/me', { name: form.name.trim(), language: form.language })
+      const { data } = await client.put('/users/me', {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        language: form.language,
+        current_password: movingEmail ? form.currentPassword : null,
+      })
       setUser(data)
-      notify('Profile updated.')
+      setForm((current) => ({ ...current, currentPassword: '' }))
+      notify(movingEmail ? 'Profile updated. Log in with your new email from now on.' : 'Profile updated.')
     } catch (error) {
-      setFailed(readError(error, 'Could not save your profile.'))
+      const message = readError(error, 'Could not save your profile.')
+      if (error?.response?.status === 409) setErrors((current) => ({ ...current, email: message }))
+      else if (error?.response?.status === 403) setErrors((current) => ({ ...current, currentPassword: message }))
+      else setFailed(message)
     } finally {
       setPending(false)
     }
@@ -143,19 +158,42 @@ export default function Profile() {
           value={form.name}
           onChange={(e) => {
             setForm({ ...form, name: e.target.value })
-            setErrors({})
+            setErrors((current) => ({ ...current, name: '' }))
             setFailed('')
           }}
           error={errors.name}
         />
 
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-            Email
-          </label>
-          <input id="email" className="input bg-slate-50 text-slate-500" value={user?.email || ''} readOnly />
-          <p className="mt-1 text-xs text-slate-500">Your email is how you log in and cannot be changed here.</p>
-        </div>
+        <FormInput
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          hint="This is how you log in. Changing it asks for your password."
+          value={form.email}
+          onChange={(e) => {
+            setForm({ ...form, email: e.target.value })
+            setErrors((current) => ({ ...current, email: '', currentPassword: '' }))
+            setFailed('')
+          }}
+          error={errors.email}
+        />
+
+        {movingEmail && (
+          <FormInput
+            label="Current password"
+            name="current_password"
+            type="password"
+            autoComplete="current-password"
+            hint="Needed only because you are changing your email."
+            value={form.currentPassword}
+            onChange={(e) => {
+              setForm({ ...form, currentPassword: e.target.value })
+              setErrors((current) => ({ ...current, currentPassword: '' }))
+            }}
+            error={errors.currentPassword}
+          />
+        )}
 
         <div>
           <label htmlFor="language" className="mb-1 block text-sm font-medium text-slate-700">

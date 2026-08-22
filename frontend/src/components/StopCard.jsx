@@ -1,40 +1,14 @@
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core'
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { ArrowDown, ArrowUp, Clock, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { dayCount, formatDate, formatMoney } from '../format'
+import SortableActivities, { SortableActivityRow, shiftWithin } from './SortableActivities'
 
 function plannedCost(planned) {
   return Number(planned.cost_override ?? planned.activity.cost)
 }
 
 function PlannedRow({ planned, position, total, onMove, onRemove }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: planned.id })
-
   return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 px-2 py-2 ${
-        isDragging ? 'relative z-10 shadow-md' : ''
-      }`}
-    >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Reorder ${planned.activity.name}`}
-        className="cursor-grab touch-none rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 active:cursor-grabbing"
-      >
-        <GripVertical size={16} />
-      </button>
-
+    <SortableActivityRow id={planned.id} label={planned.activity.name}>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-900">{planned.activity.name}</p>
         <p className="text-xs text-slate-500">
@@ -77,7 +51,7 @@ function PlannedRow({ planned, position, total, onMove, onRemove }) {
           Remove
         </button>
       </div>
-    </li>
+    </SortableActivityRow>
   )
 }
 
@@ -95,22 +69,9 @@ export default function StopCard({
   const nights = dayCount(stop.arrival_date, stop.departure_date) - 1
   const ids = stop.activities.map((planned) => planned.id)
 
-  // A few pixels of movement before a drag starts, so tapping the handle is not a drag.
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  )
-
   function shift(planned, direction) {
-    const from = ids.indexOf(planned.id)
-    const to = from + direction
-    if (to < 0 || to >= ids.length) return
-    onReorderActivities(stop, arrayMove(ids, from, to))
-  }
-
-  function onDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return
-    onReorderActivities(stop, arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id)))
+    const moved = shiftWithin(ids, planned.id, direction)
+    if (moved) onReorderActivities(stop, moved)
   }
 
   return (
@@ -179,22 +140,18 @@ export default function StopCard({
             {stop.activities.length > 1 && (
               <p className="mb-2 text-xs text-slate-500">Drag a handle to reorder, or use the arrows.</p>
             )}
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                <ul className="space-y-2">
-                  {stop.activities.map((planned, index) => (
-                    <PlannedRow
-                      key={planned.id}
-                      planned={planned}
-                      position={index}
-                      total={stop.activities.length}
-                      onMove={shift}
-                      onRemove={onRemoveActivity}
-                    />
-                  ))}
-                </ul>
-              </SortableContext>
-            </DndContext>
+            <SortableActivities ids={ids} onReorder={(order) => onReorderActivities(stop, order)}>
+              {stop.activities.map((planned, index) => (
+                <PlannedRow
+                  key={planned.id}
+                  planned={planned}
+                  position={index}
+                  total={stop.activities.length}
+                  onMove={shift}
+                  onRemove={onRemoveActivity}
+                />
+              ))}
+            </SortableActivities>
           </>
         )}
 
