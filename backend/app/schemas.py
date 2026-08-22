@@ -1,7 +1,8 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 PASSWORD_RULE = "Password must be at least 8 characters and include a letter and a number."
 
@@ -56,3 +57,69 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+MAX_TRIP_DAYS = 60
+
+
+class TripIn(BaseModel):
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    start_date: date
+    end_date: date
+    total_budget: Decimal | None = None
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value):
+        value = value.strip()
+        if len(value) < 3:
+            raise ValueError("Trip name must be at least 3 characters.")
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def tidy_description(cls, value):
+        return value.strip() if value else None
+
+    @field_validator("total_budget")
+    @classmethod
+    def check_budget(cls, value):
+        if value is not None and value <= 0:
+            raise ValueError("Budget must be greater than zero.")
+        return value
+
+    @model_validator(mode="after")
+    def check_dates(self):
+        if self.end_date < self.start_date:
+            raise ValueError("End date must be on or after the start date.")
+        if (self.end_date - self.start_date).days > MAX_TRIP_DAYS:
+            raise ValueError(f"A trip can span at most {MAX_TRIP_DAYS} days.")
+        return self
+
+
+class TripCreate(TripIn):
+    @model_validator(mode="after")
+    def check_start_not_past(self):
+        if self.start_date < date.today():
+            raise ValueError("Start date cannot be in the past.")
+        return self
+
+
+class TripOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None
+    start_date: date
+    end_date: date
+    total_budget: Decimal | None
+    is_public: bool
+    share_token: str | None
+    created_at: datetime
+
+
+class TripSummary(TripOut):
+    stop_count: int = 0
+    estimated_cost: Decimal = Decimal("0")
