@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Activity, Stop, StopActivity, Trip, User
-from ..schemas import ReorderIn, StopActivityIn, StopActivityOut, StopIn, StopOut
+from ..schemas import ActivityReorderIn, ReorderIn, StopActivityIn, StopActivityOut, StopIn, StopOut
 
 router = APIRouter(tags=["stops"])
 
@@ -137,11 +137,35 @@ def add_activity(
             f"Pick a day between {stop.arrival_date} and {stop.departure_date}.",
         )
 
-    planned = StopActivity(stop_id=stop.id, **payload.model_dump())
+    next_index = max((planned.order_index for planned in stop.activities), default=-1) + 1
+    planned = StopActivity(stop_id=stop.id, order_index=next_index, **payload.model_dump())
     db.add(planned)
     db.commit()
     db.refresh(planned)
     return planned
+
+
+@router.put("/api/stops/{stop_id}/activities/reorder", response_model=list[StopActivityOut])
+def reorder_activities(
+    stop_id: int,
+    payload: ActivityReorderIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    stop = owned_stop(stop_id, db, user)
+    by_id = {planned.id: planned for planned in stop.activities}
+
+    if sorted(payload.activity_ids) != sorted(by_id):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "The new order must list every activity in this stop once.",
+        )
+
+    for position, planned_id in enumerate(payload.activity_ids):
+        by_id[planned_id].order_index = position
+    db.commit()
+
+    return sorted(by_id.values(), key=lambda planned: planned.order_index)
 
 
 @router.delete("/api/stop-activities/{planned_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -248,6 +248,7 @@ class StopActivityOut(BaseModel):
     id: int
     stop_id: int
     activity_id: int
+    order_index: int
     scheduled_date: date
     start_time: time | None
     cost_override: Decimal | None
@@ -276,6 +277,10 @@ class TripDetail(TripOut):
 
 class ReorderIn(BaseModel):
     stop_ids: list[int] = Field(min_length=1)
+
+
+class ActivityReorderIn(BaseModel):
+    activity_ids: list[int] = Field(min_length=1)
 
 
 class BudgetByStop(BaseModel):

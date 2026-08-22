@@ -1,12 +1,117 @@
-import { ArrowDown, ArrowUp, Clock, Pencil, Plus, Trash2 } from 'lucide-react'
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { ArrowDown, ArrowUp, Clock, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { dayCount, formatDate, formatMoney } from '../format'
 
 function plannedCost(planned) {
   return Number(planned.cost_override ?? planned.activity.cost)
 }
 
-export default function StopCard({ stop, position, total, onMove, onEdit, onDelete, onAddActivity, onRemoveActivity }) {
+function PlannedRow({ planned, position, total, onMove, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: planned.id })
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 px-2 py-2 ${
+        isDragging ? 'relative z-10 shadow-md' : ''
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Reorder ${planned.activity.name}`}
+        className="cursor-grab touch-none rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 active:cursor-grabbing"
+      >
+        <GripVertical size={16} />
+      </button>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-slate-900">{planned.activity.name}</p>
+        <p className="text-xs text-slate-500">
+          {formatDate(planned.scheduled_date, { day: 'numeric', month: 'short' })}
+          {planned.start_time ? ` · ${planned.start_time.slice(0, 5)}` : ''}
+          {' · '}
+          {plannedCost(planned) === 0 ? 'Free' : formatMoney(plannedCost(planned))}
+          {' · '}
+          <span className="inline-flex items-center gap-1">
+            <Clock size={12} />
+            {Number(planned.activity.duration_hours)} h
+          </span>
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-transparent"
+          onClick={() => onMove(planned, -1)}
+          disabled={position === 0}
+          aria-label={`Move ${planned.activity.name} up`}
+        >
+          <ArrowUp size={15} />
+        </button>
+        <button
+          type="button"
+          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-transparent"
+          onClick={() => onMove(planned, 1)}
+          disabled={position === total - 1}
+          aria-label={`Move ${planned.activity.name} down`}
+        >
+          <ArrowDown size={15} />
+        </button>
+        <button
+          type="button"
+          className="rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+          onClick={() => onRemove(planned)}
+        >
+          Remove
+        </button>
+      </div>
+    </li>
+  )
+}
+
+export default function StopCard({
+  stop,
+  position,
+  total,
+  onMove,
+  onEdit,
+  onDelete,
+  onAddActivity,
+  onRemoveActivity,
+  onReorderActivities,
+}) {
   const nights = dayCount(stop.arrival_date, stop.departure_date) - 1
+  const ids = stop.activities.map((planned) => planned.id)
+
+  // A few pixels of movement before a drag starts, so tapping the handle is not a drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  function shift(planned, direction) {
+    const from = ids.indexOf(planned.id)
+    const to = from + direction
+    if (to < 0 || to >= ids.length) return
+    onReorderActivities(stop, arrayMove(ids, from, to))
+  }
+
+  function onDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    onReorderActivities(stop, arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id)))
+  }
 
   return (
     <article className="card p-6">
@@ -70,36 +175,27 @@ export default function StopCard({ stop, position, total, onMove, onEdit, onDele
         {stop.activities.length === 0 ? (
           <p className="text-sm text-slate-500">Nothing planned here yet.</p>
         ) : (
-          <ul className="space-y-2">
-            {stop.activities.map((planned) => (
-              <li
-                key={planned.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{planned.activity.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {formatDate(planned.scheduled_date, { day: 'numeric', month: 'short' })}
-                    {planned.start_time ? ` · ${planned.start_time.slice(0, 5)}` : ''}
-                    {' · '}
-                    {plannedCost(planned) === 0 ? 'Free' : formatMoney(plannedCost(planned))}
-                    {' · '}
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />
-                      {Number(planned.activity.duration_hours)} h
-                    </span>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-                  onClick={() => onRemoveActivity(planned)}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            {stop.activities.length > 1 && (
+              <p className="mb-2 text-xs text-slate-500">Drag a handle to reorder, or use the arrows.</p>
+            )}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-2">
+                  {stop.activities.map((planned, index) => (
+                    <PlannedRow
+                      key={planned.id}
+                      planned={planned}
+                      position={index}
+                      total={stop.activities.length}
+                      onMove={shift}
+                      onRemove={onRemoveActivity}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
 
         <button type="button" className="btn-secondary mt-4" onClick={() => onAddActivity(stop)}>

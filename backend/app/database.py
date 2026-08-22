@@ -28,6 +28,22 @@ def ensure_columns():
     statements = [
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false",
         "ALTER TABLE trips ADD COLUMN IF NOT EXISTS cover_image varchar(255)",
+        # Added nullable, filled from the order the activities were already shown in, then locked
+        # down. Rows that already carry a position are left alone, so a re-run never reshuffles.
+        "ALTER TABLE stop_activities ADD COLUMN IF NOT EXISTS order_index integer",
+        """
+        UPDATE stop_activities planned
+        SET order_index = ranked.position
+        FROM (
+            SELECT id, row_number() OVER (
+                PARTITION BY stop_id ORDER BY scheduled_date, start_time NULLS FIRST, id
+            ) - 1 AS position
+            FROM stop_activities
+        ) ranked
+        WHERE planned.id = ranked.id AND planned.order_index IS NULL
+        """,
+        "ALTER TABLE stop_activities ALTER COLUMN order_index SET DEFAULT 0",
+        "ALTER TABLE stop_activities ALTER COLUMN order_index SET NOT NULL",
     ]
     with engine.begin() as conn:
         for statement in statements:

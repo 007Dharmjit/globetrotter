@@ -113,7 +113,7 @@ class Stop(Base):
         "StopActivity",
         back_populates="stop",
         cascade="all, delete-orphan",
-        order_by="StopActivity.scheduled_date",
+        order_by="StopActivity.order_index",
     )
 
 
@@ -124,6 +124,7 @@ class StopActivity(Base):
     id = Column(Integer, primary_key=True)
     stop_id = Column(Integer, ForeignKey("stops.id", ondelete="CASCADE"), nullable=False, index=True)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    order_index = Column(Integer, nullable=False, default=0, server_default="0")
     scheduled_date = Column(Date, nullable=False)
     start_time = Column(Time)
     cost_override = Column(Numeric(10, 2))

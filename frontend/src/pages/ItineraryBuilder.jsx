@@ -113,6 +113,26 @@ export default function ItineraryBuilder() {
     }
   }
 
+  // The list is put in its new order straight away and rolled back if the server disagrees.
+  async function reorderActivities(stop, activityIds) {
+    const before = trip
+    setTrip((current) => ({
+      ...current,
+      stops: current.stops.map((s) =>
+        s.id === stop.id
+          ? { ...s, activities: activityIds.map((id) => s.activities.find((a) => a.id === id)) }
+          : s,
+      ),
+    }))
+
+    try {
+      await client.put(`/stops/${stop.id}/activities/reorder`, { activity_ids: activityIds })
+    } catch (error) {
+      setTrip(before)
+      notify(readError(error, 'Could not reorder the activities.'), 'error')
+    }
+  }
+
   async function removeActivity(planned) {
     try {
       await client.delete(`/stop-activities/${planned.id}`)
@@ -180,6 +200,7 @@ export default function ItineraryBuilder() {
               onDelete={setRemovingStop}
               onAddActivity={setActivityFor}
               onRemoveActivity={removeActivity}
+              onReorderActivities={reorderActivities}
             />
           ))}
         </div>
