@@ -5,6 +5,7 @@ import client, { readError } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import ItineraryDays, { buildDays } from '../components/ItineraryDays'
 import Loader from '../components/Loader'
+import ShareButtons from '../components/ShareButtons'
 import { dayCount, formatDateRange } from '../format'
 
 export default function SharedTrip() {
@@ -56,6 +57,10 @@ export default function SharedTrip() {
             <MapPin size={16} className="text-slate-400" />
             {trip.stops.length} {trip.stops.length === 1 ? 'stop' : 'stops'}
           </span>
+        </div>
+
+        <div className="mt-4">
+          <ShareButtons tripName={trip.name} url={window.location.href} />
         </div>
       </header>
 

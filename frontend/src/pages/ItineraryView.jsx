@@ -7,6 +7,7 @@ import ItineraryDays, { buildDays } from '../components/ItineraryDays'
 import Loader from '../components/Loader'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import ShareButtons from '../components/ShareButtons'
 import { useToast } from '../components/Toast'
 import TripCalendar from '../components/TripCalendar'
 import TripHeader from '../components/TripHeader'
@@ -142,6 +143,7 @@ export default function ItineraryView() {
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
+              <ShareButtons tripName={trip.name} url={share?.share_url} />
               <div className="flex justify-end gap-3">
                 <button type="button" className="btn-danger" onClick={stopSharing}>
                   Stop sharing
